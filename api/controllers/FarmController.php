@@ -60,6 +60,17 @@ class FarmController extends BaseController {
             'crop_type_id'   => 'required|numeric',
         ]);
 
+        // ── Duplicate guard: same user, same location submitted within 60 seconds ──
+        $recent = $this->farms->rawOne(
+            "SELECT id FROM farms
+             WHERE user_id = ? AND location = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)
+             LIMIT 1",
+            [$auth['id'], sanitize($data['location'])]
+        );
+        if ($recent) {
+            sendError('Duplicate submission detected. Your farm was already registered moments ago.', 409);
+        }
+
         $id = $this->farms->insert([
             'user_id'        => $auth['id'],
             'farm_name'      => sanitize($data['farm_name']),
