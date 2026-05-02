@@ -69,8 +69,9 @@ class NotificationController extends BaseController {
         $auth = requireAuth();
         requireRole($auth, ['admin', 'agent']);
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'user_id' => 'required|numeric',
             'title'   => 'required|max:255',
