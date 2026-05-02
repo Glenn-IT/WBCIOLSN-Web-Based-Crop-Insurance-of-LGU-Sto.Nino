@@ -54,8 +54,9 @@ class ClaimController extends BaseController {
     // POST /api/claims
     public function store(array $params): void {
         $auth = requireAuth();
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->validateOrFail($data, [
             'policy_id'     => 'required|numeric',
@@ -94,8 +95,9 @@ class ClaimController extends BaseController {
         $claim = $this->claims->find($id);
         if (!$claim) sendNotFound('Claim not found.');
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'status' => 'required|in:submitted,under_review,approved,rejected,paid',
         ]);
