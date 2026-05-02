@@ -72,6 +72,21 @@ class PolicyController extends BaseController {
         $plan = $this->plans->find((int)$data['plan_id']);
         if (!$plan || !$plan['is_active']) sendNotFound('Coverage plan not found or inactive.');
 
+        // ── Duplicate guard: block if an active/pending policy already exists for this farm ──
+        $existing = $this->policies->rawOne(
+            "SELECT id, policy_number, status FROM policies
+             WHERE farm_id = ? AND status IN ('pending','active')
+             LIMIT 1",
+            [(int)$data['farm_id']]
+        );
+        if ($existing) {
+            sendError(
+                "A {$existing['status']} policy ({$existing['policy_number']}) already exists for this farm. " .
+                "Please wait for it to be processed or cancel it first.",
+                409
+            );
+        }
+
         // Calculate end date and premium
         $startDate   = $data['start_date'];
         $endDate     = date('Y-m-d', strtotime("+{$plan['duration_months']} months", strtotime($startDate)));
