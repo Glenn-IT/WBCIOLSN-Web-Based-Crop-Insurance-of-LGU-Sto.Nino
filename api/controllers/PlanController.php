@@ -52,8 +52,9 @@ class PlanController extends BaseController {
         $auth = requireAuth();
         requireRole($auth, 'admin');
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'plan_name'           => 'required|max:150',
             'coverage_type'       => 'required|in:natural_disaster,pest_disease,drought,flood,comprehensive',
@@ -87,8 +88,9 @@ class PlanController extends BaseController {
         $plan = $this->plans->find($id);
         if (!$plan) sendNotFound('Coverage plan not found.');
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'plan_name'           => 'required|max:150',
             'coverage_type'       => 'required|in:natural_disaster,pest_disease,drought,flood,comprehensive',
