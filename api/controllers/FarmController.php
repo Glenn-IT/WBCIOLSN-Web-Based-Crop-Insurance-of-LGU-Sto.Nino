@@ -49,8 +49,9 @@ class FarmController extends BaseController {
     // POST /api/farms
     public function store(array $params): void {
         $auth = requireAuth();
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->validateOrFail($data, [
             'farm_name'      => 'required|max:150',
@@ -84,8 +85,9 @@ class FarmController extends BaseController {
         if (!$farm) sendNotFound('Farm not found.');
         requireOwnerOrAdmin($auth, (int)$farm['user_id']);
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'farm_name'     => 'required|max:150',
             'location'      => 'required|max:255',
