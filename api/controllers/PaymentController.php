@@ -54,8 +54,9 @@ class PaymentController extends BaseController {
     // POST /api/payments/premium
     public function premium(array $params): void {
         $auth = requireAuth();
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->validateOrFail($data, [
             'policy_id' => 'required|numeric',
@@ -90,8 +91,9 @@ class PaymentController extends BaseController {
         $auth = requireAuth();
         requireRole($auth, 'admin');
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'claim_id' => 'required|numeric',
             'amount'   => 'required|numeric',
