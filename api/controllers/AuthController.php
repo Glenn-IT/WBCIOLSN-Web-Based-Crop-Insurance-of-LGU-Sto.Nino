@@ -25,8 +25,9 @@ class AuthController extends BaseController {
     public function register(array $params): void {
         rateLimit(10, 60, 'register'); // 10 registrations/min per IP
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->validateOrFail($data, [
             'first_name' => 'required|max:100',
