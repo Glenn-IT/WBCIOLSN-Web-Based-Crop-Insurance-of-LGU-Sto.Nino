@@ -57,8 +57,9 @@ class UserController extends BaseController {
         $user = $this->users->find($id);
         if (!$user) sendNotFound('User not found.');
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, [
             'first_name' => 'required|max:100',
             'last_name'  => 'required|max:100',
@@ -96,8 +97,9 @@ class UserController extends BaseController {
         requireRole($auth, 'admin');
         $id   = assertPositiveInt($params['id']);
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, ['status' => 'required|in:active,inactive,suspended']);
 
         $user = $this->users->find($id);
