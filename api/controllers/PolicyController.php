@@ -55,8 +55,9 @@ class PolicyController extends BaseController {
     // POST /api/policies
     public function store(array $params): void {
         $auth = requireAuth();
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->validateOrFail($data, [
             'farm_id'    => 'required|numeric',
@@ -103,8 +104,9 @@ class PolicyController extends BaseController {
         if (!$policy) sendNotFound('Policy not found.');
         if ($policy['status'] !== 'pending') sendError('Only pending policies can be approved.', 400);
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
 
         $this->policies->update($id, [
             'status'      => 'active',
@@ -131,8 +133,9 @@ class PolicyController extends BaseController {
             sendError('Policy is already cancelled or expired.', 400);
         }
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->policies->update($id, [
             'status'  => 'cancelled',
             'remarks' => sanitize($data['remarks'] ?? 'Cancelled by user.'),
@@ -152,8 +155,9 @@ class PolicyController extends BaseController {
         if (!$policy) sendNotFound('Policy not found.');
         if ($policy['status'] !== 'pending') sendError('Only pending policies can be rejected.', 400);
 
-        $data = sanitizeAll($this->body());
-        guardSqlInjection($data);
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
         $this->validateOrFail($data, ['remarks' => 'required']);
 
         $this->policies->update($id, [
