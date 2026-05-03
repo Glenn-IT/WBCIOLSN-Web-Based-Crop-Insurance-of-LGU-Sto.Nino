@@ -55,6 +55,7 @@ $router->get('/auth/me',                 [AuthController::class, 'me']);
 
 // ---- User routes (Phase 4) ----
 $router->get('/users',                  [UserController::class, 'index']);
+$router->post('/users',                 [UserController::class, 'store']);
 $router->get('/users/{id}',             [UserController::class, 'show']);
 $router->put('/users/{id}',             [UserController::class, 'update']);
 $router->delete('/users/{id}',          [UserController::class, 'destroy']);
@@ -78,8 +79,11 @@ $router->delete('/plans/{id}',          [PlanController::class, 'destroy']);
 $router->get('/policies',               [PolicyController::class, 'index']);
 $router->post('/policies',              [PolicyController::class, 'store']);
 $router->get('/policies/{id}',          [PolicyController::class, 'show']);
+$router->put('/policies/{id}',          [PolicyController::class, 'update']);
 $router->put('/policies/{id}/approve',  [PolicyController::class, 'approve']);
 $router->put('/policies/{id}/reject',   [PolicyController::class, 'reject']);
+$router->put('/policies/{id}/review',   [PolicyController::class, 'review']);
+$router->delete('/policies/{id}',       [PolicyController::class, 'destroy']);
 $router->put('/policies/{id}/cancel',   [PolicyController::class, 'cancel']);
 
 // ---- Claim routes (Phase 4) ----
