@@ -72,16 +72,22 @@ class FarmController extends BaseController {
         }
 
         $id = $this->farms->insert([
-            'user_id'        => $auth['id'],
-            'farm_name'      => sanitize($data['farm_name']),
-            'location'       => sanitize($data['location']),
-            'province'       => sanitize($data['province']    ?? ''),
-            'municipality'   => sanitize($data['municipality'] ?? ''),
-            'barangay'       => sanitize($data['barangay']    ?? ''),
-            'area_hectares'  => (float)$data['area_hectares'],
-            'crop_type_id'   => (int)$data['crop_type_id'],
-            'soil_type'      => sanitize($data['soil_type']   ?? ''),
-            'irrigation'     => isset($data['irrigation']) ? (int)$data['irrigation'] : 0,
+            'user_id'          => $auth['id'],
+            'farm_name'        => sanitize($data['farm_name']),
+            'application_type' => sanitize($data['application_type'] ?? ''),
+            'farmer_category'  => sanitize($data['farmer_category']  ?? ''),
+            'location'         => sanitize($data['location']),
+            'province'         => sanitize($data['province']    ?? ''),
+            'municipality'     => sanitize($data['municipality'] ?? ''),
+            'barangay'         => sanitize($data['barangay']    ?? ''),
+            'area_hectares'    => (float)$data['area_hectares'],
+            'crop_type_id'     => (int)$data['crop_type_id'],
+            'soil_type'        => sanitize($data['soil_type']   ?? ''),
+            'irrigation'       => isset($data['irrigation']) ? (int)$data['irrigation'] : 0,
+            'tenurial_status'  => sanitize($data['tenurial_status']  ?? ''),
+            'planting_method'  => sanitize($data['planting_method']  ?? ''),
+            'planting_date'    => sanitize($data['planting_date']    ?? ''),
+            'harvest_date'     => sanitize($data['harvest_date']     ?? ''),
         ]);
 
         $this->audit($auth['id'], 'create_farm', 'farms', "Created farm #$id");
@@ -107,15 +113,21 @@ class FarmController extends BaseController {
         ]);
 
         $this->farms->update($id, [
-            'farm_name'     => sanitize($data['farm_name']),
-            'location'      => sanitize($data['location']),
-            'province'      => sanitize($data['province']    ?? $farm['province']),
-            'municipality'  => sanitize($data['municipality'] ?? $farm['municipality']),
-            'barangay'      => sanitize($data['barangay']    ?? $farm['barangay']),
-            'area_hectares' => (float)$data['area_hectares'],
-            'crop_type_id'  => (int)$data['crop_type_id'],
-            'soil_type'     => sanitize($data['soil_type']   ?? $farm['soil_type']),
-            'irrigation'    => isset($data['irrigation']) ? (int)$data['irrigation'] : $farm['irrigation'],
+            'farm_name'        => sanitize($data['farm_name']),
+            'application_type' => sanitize($data['application_type'] ?? $farm['application_type']),
+            'farmer_category'  => sanitize($data['farmer_category']  ?? $farm['farmer_category']),
+            'location'         => sanitize($data['location']),
+            'province'         => sanitize($data['province']    ?? $farm['province']),
+            'municipality'     => sanitize($data['municipality'] ?? $farm['municipality']),
+            'barangay'         => sanitize($data['barangay']    ?? $farm['barangay']),
+            'area_hectares'    => (float)$data['area_hectares'],
+            'crop_type_id'     => (int)$data['crop_type_id'],
+            'soil_type'        => sanitize($data['soil_type']   ?? $farm['soil_type']),
+            'irrigation'       => isset($data['irrigation']) ? (int)$data['irrigation'] : $farm['irrigation'],
+            'tenurial_status'  => sanitize($data['tenurial_status']  ?? $farm['tenurial_status']),
+            'planting_method'  => sanitize($data['planting_method']  ?? $farm['planting_method']),
+            'planting_date'    => sanitize($data['planting_date']    ?? $farm['planting_date']),
+            'harvest_date'     => sanitize($data['harvest_date']     ?? $farm['harvest_date']),
         ]);
 
         $this->audit($auth['id'], 'update_farm', 'farms', "Updated farm #$id");
