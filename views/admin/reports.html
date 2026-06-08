@@ -27,7 +27,7 @@
   </head>
   <body>
     <div class="app-layout">
-      <aside class="sidebar">
+      <aside class="sidebar admin-sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">🛡️</div>
           <div>
@@ -53,6 +53,9 @@
           <div class="nav-item" onclick="navigateTo('claim-verification.html')">
             <span class="nav-icon">✅</span>Claim Verification
           </div>
+          <div class="nav-item" onclick="navigateTo('user-management.html')">
+            <span class="nav-icon">👥</span>User Management
+          </div>
           <div class="nav-section-label">Reports & Settings</div>
           <div class="nav-item active">
             <span class="nav-icon">📈</span>Reports
@@ -66,11 +69,12 @@
             <div
               class="user-avatar"
               style="background: linear-gradient(135deg, #e74c3c, #c0392b)"
+              id="sidebar-avatar"
             >
               AL
             </div>
             <div>
-              <div class="user-name-sidebar">Admin LGU</div>
+              <div class="user-name-sidebar" id="sidebar-name">Admin LGU</div>
               <div class="user-role-sidebar">Administrator</div>
             </div>
           </div>
@@ -119,6 +123,7 @@
           >
             <div
               class="user-avatar"
+              id="topbar-avatar"
               style="
                 width: 30px;
                 height: 30px;
@@ -128,7 +133,11 @@
             >
               AL
             </div>
-            <span style="font-size: 13px; font-weight: 600">Admin LGU</span>
+            <span
+              id="topbar-user-name"
+              style="font-size: 13px; font-weight: 600"
+              >Admin LGU</span
+            >
           </div>
         </div>
       </header>
@@ -319,200 +328,229 @@
 
     <div id="toast-container"></div>
 
-    <script src="../../data/mockData.js"></script>
-    <script src="../../assets/js/app.js"></script>
+    <script src="../../assets/js/app.js?v=2"></script>
     <script>
-      requireAdmin();
+      // ── Global state ─────────────────────────────────────────
+      let allPolicies = [];
+      let allClaims = [];
 
-      function loadReports() {
-        const apps = getApplications();
-        const claims = getClaims();
-
-        const approved = apps.filter((a) => a.status === "Approved");
-        const totalCoverage = approved.reduce(
-          (s, a) => s + (parseFloat(a.desiredCoverage) || 0),
-          0,
-        );
-        const totalIndemnity = claims
-          .filter((c) => c.status === "Approved")
-          .reduce((s, c) => s + (parseFloat(c.indemnity) || 0), 0);
-
-        document.getElementById("r-total").textContent = apps.length;
-        document.getElementById("r-approved").textContent = approved.length;
-        document.getElementById("r-pending").textContent = apps.filter(
-          (a) => a.status === "Pending",
-        ).length;
-        document.getElementById("r-indemnity").textContent =
-          formatCurrency(totalIndemnity);
-        document.getElementById("app-count").textContent =
-          `${apps.length} record(s)`;
-        document.getElementById("claims-count").textContent =
-          `${claims.length} record(s)`;
-        document.getElementById("print-date").textContent =
-          new Date().toLocaleDateString("en-PH", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-
-        // Apps table
-        const appBody = document.getElementById("app-table-body");
-        appBody.innerHTML = apps
-          .map(
-            (a, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td><strong>${a.id}</strong></td>
-            <td>${a.farmerName}</td>
-            <td>${a.farmLocation}</td>
-            <td>${a.cropType || "Corn"}</td>
-            <td>${a.totalArea}</td>
-            <td>${formatCurrency(a.desiredCoverage)}</td>
-            <td>${getStatusBadge(a.status)}</td>
-            <td>${formatDate(a.createdAt)}</td>
-          </tr>
-        `,
-          )
-          .join("");
-        document.getElementById("app-table-foot").innerHTML = `
-          <tr style="background:#f0fdf4;font-weight:700">
-            <td colspan="6" style="text-align:right;padding:10px 12px">Total Approved Coverage:</td>
-            <td colspan="3" style="color:var(--primary);padding:10px 12px">${formatCurrency(totalCoverage)}</td>
-          </tr>`;
-
-        // Claims table
-        const claimsBody = document.getElementById("claims-table-body");
-        claimsBody.innerHTML = claims
-          .map(
-            (c, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td><strong>${c.id}</strong></td>
-            <td>${c.applicationId}</td>
-            <td>${c.farmerName}</td>
-            <td>${formatDate(c.date)}</td>
-            <td>${c.causeOfDamage}</td>
-            <td>${c.percentDamage}%</td>
-            <td>${c.indemnity ? formatCurrency(c.indemnity) : "—"}</td>
-            <td>${getStatusBadge(c.status)}</td>
-          </tr>
-        `,
-          )
-          .join("");
-        document.getElementById("claims-table-foot").innerHTML = `
-          <tr style="background:#fffbeb;font-weight:700">
-            <td colspan="7" style="text-align:right;padding:10px 12px">Total Indemnity Paid:</td>
-            <td colspan="2" style="color:var(--secondary-dark);padding:10px 12px">${formatCurrency(totalIndemnity)}</td>
-          </tr>`;
-
-        buildCharts(apps, claims);
-      }
-
-      function buildCharts(apps, claims) {
-        const statusCounts = {
-          Approved: apps.filter((a) => a.status === "Approved").length,
-          Pending: apps.filter((a) => a.status === "Pending").length,
-          Rejected: apps.filter((a) => a.status === "Rejected").length,
-        };
-        new Chart(document.getElementById("statusChart"), {
-          type: "doughnut",
-          data: {
-            labels: Object.keys(statusCounts),
-            datasets: [
-              {
-                data: Object.values(statusCounts),
-                backgroundColor: ["#1a6b3c", "#f0a500", "#e74c3c"],
-                hoverOffset: 6,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: "right" } },
-          },
-        });
-
-        const causeCounts = {};
-        claims.forEach((c) => {
-          causeCounts[c.causeOfDamage] =
-            (causeCounts[c.causeOfDamage] || 0) + 1;
-        });
-        new Chart(document.getElementById("causeChart"), {
-          type: "bar",
-          data: {
-            labels: Object.keys(causeCounts),
-            datasets: [
-              {
-                label: "Claims",
-                data: Object.values(causeCounts),
-                backgroundColor: [
-                  "#4CAF50",
-                  "#2196F3",
-                  "#FF9800",
-                  "#9C27B0",
-                  "#F44336",
-                ],
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: "y",
-            plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
-          },
-        });
-      }
-
+      // ── Global functions (called from onclick) ───────────────
       function exportCSV() {
-        const apps = getApplications();
-        const headers = [
-          "ID",
-          "Farmer Name",
-          "Location",
-          "Crop Type",
-          "Area (ha)",
-          "Coverage",
-          "Status",
-          "Date",
-        ];
-        const rows = apps.map((a) => [
-          a.id,
-          a.farmerName,
-          a.farmLocation,
-          a.cropType || "Corn",
-          a.totalArea,
-          a.desiredCoverage,
-          a.status,
-          a.createdAt ? a.createdAt.split("T")[0] : "",
-        ]);
-        const csvContent = [headers, ...rows]
-          .map((r) =>
-            r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
-          )
-          .join("\n");
-        const blob = new Blob([csvContent], {
-          type: "text/csv;charset=utf-8;",
+        if (!allPolicies.length && !allClaims.length) {
+          showToast("No data to export.", "warning");
+          return;
+        }
+
+        let csv = "=== APPLICATIONS ===\n";
+        csv +=
+          "App ID,Farmer Name,Location,Crop Type,Area (ha),Coverage,Status,Date Submitted\n";
+        allPolicies.forEach((p) => {
+          csv += `"${p.policy_number || p.id}","${(p.first_name || "") + " " + (p.last_name || "")}","${p.barangay || p.farm_location || ""}","${p.crop_type || p.plan_name || ""}","${p.area_hectares || ""}","${p.coverage_amount || 0}","${p.status}","${p.created_at || ""}"\n`;
         });
+
+        csv += "\n=== CLAIMS ===\n";
+        csv +=
+          "Claim ID,Policy ID,Farmer,Date Filed,Cause,Damage %,Indemnity,Status\n";
+        allClaims.forEach((c) => {
+          csv += `"${c.claim_number || c.id}","${c.policy_number || ""}","${(c.first_name || "") + " " + (c.last_name || "")}","${c.created_at || ""}","${c.incident_type || ""}","${c.damage_percentage || ""}","${c.approved_amount || c.estimated_loss || 0}","${c.status}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "lgu-crop-insurance-report.csv";
+        a.download =
+          "lgu-crop-insurance-report-" +
+          new Date().toISOString().slice(0, 10) +
+          ".csv";
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast("Exported", "CSV file downloaded successfully.", "success");
+        showToast("CSV exported successfully!", "success");
       }
 
-      window.addEventListener("beforeprint", () => {
-        document.getElementById("print-header").style.display = "block";
-      });
-      window.addEventListener("afterprint", () => {
-        document.getElementById("print-header").style.display = "none";
-      });
+      // ── Internal helpers ──────────────────────────────────────
+      async function loadReports() {
+        try {
+          // Load policies
+          const polRes = await api("GET", "/policies");
+          if (polRes.success) {
+            allPolicies = polRes.data || [];
+            const approved = allPolicies.filter(
+              (p) => p.status === "active" || p.status === "approved",
+            ).length;
+            const pending = allPolicies.filter(
+              (p) => p.status === "pending",
+            ).length;
 
-      loadReports();
+            const set = (id, val) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = val;
+            };
+            set("r-total", allPolicies.length);
+            set("r-approved", approved);
+            set("r-pending", pending);
+
+            const tbody = document.getElementById("app-table-body");
+            const countEl = document.getElementById("app-count");
+            if (countEl) countEl.textContent = allPolicies.length + " records";
+            if (tbody) {
+              tbody.innerHTML = allPolicies.length
+                ? allPolicies
+                    .map(
+                      (p, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${p.policy_number || "APP-" + p.id}</td>
+                  <td>${(p.first_name || "") + " " + (p.last_name || "")}</td>
+                  <td>${p.barangay || p.farm_location || "—"}</td>
+                  <td>${p.crop_type || p.plan_name || "—"}</td>
+                  <td>${p.area_hectares || "—"}</td>
+                  <td>${formatCurrency(p.coverage_amount)}</td>
+                  <td>${getStatusBadge(p.status)}</td>
+                  <td>${formatDate(p.created_at)}</td>
+                </tr>`,
+                    )
+                    .join("")
+                : '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px">No applications.</td></tr>';
+
+              const foot = document.getElementById("app-table-foot");
+              if (foot) {
+                const totalCoverage = allPolicies.reduce(
+                  (s, p) => s + parseFloat(p.coverage_amount || 0),
+                  0,
+                );
+                foot.innerHTML = `<tr style="font-weight:700;background:#f8fafc"><td colspan="6">Totals</td><td>${formatCurrency(totalCoverage)}</td><td></td><td></td></tr>`;
+              }
+            }
+
+            // Status pie chart
+            const statusEl = document.getElementById("statusChart");
+            if (statusEl) {
+              const rejected = allPolicies.filter(
+                (p) => p.status === "rejected",
+              ).length;
+              new Chart(statusEl, {
+                type: "doughnut",
+                data: {
+                  labels: ["Approved/Active", "Pending", "Rejected"],
+                  datasets: [
+                    {
+                      data: [approved, pending, rejected],
+                      backgroundColor: ["#28a745", "#ffc107", "#dc3545"],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: "bottom" } },
+                },
+              });
+            }
+          }
+
+          // Load claims
+          const claimRes = await api("GET", "/claims");
+          if (claimRes.success) {
+            allClaims = claimRes.data || [];
+            const totalIndemnity = allClaims
+              .filter((c) => c.status === "approved" || c.status === "paid")
+              .reduce((s, c) => s + parseFloat(c.approved_amount || 0), 0);
+
+            const indEl = document.getElementById("r-indemnity");
+            if (indEl) indEl.textContent = formatCurrency(totalIndemnity);
+
+            const claimsTbody = document.getElementById("claims-table-body");
+            const claimsCount = document.getElementById("claims-count");
+            if (claimsCount)
+              claimsCount.textContent = allClaims.length + " records";
+            if (claimsTbody) {
+              claimsTbody.innerHTML = allClaims.length
+                ? allClaims
+                    .map(
+                      (c, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${c.claim_number || "CLM-" + c.id}</td>
+                  <td>${c.policy_number || "—"}</td>
+                  <td>${(c.first_name || "") + " " + (c.last_name || "")}</td>
+                  <td>${formatDate(c.created_at)}</td>
+                  <td>${c.incident_type || "—"}</td>
+                  <td>${c.damage_percentage ? c.damage_percentage + "%" : "—"}</td>
+                  <td>${formatCurrency(c.approved_amount || c.estimated_loss)}</td>
+                  <td>${getStatusBadge(c.status)}</td>
+                </tr>`,
+                    )
+                    .join("")
+                : '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px">No claims.</td></tr>';
+
+              const claimsFoot = document.getElementById("claims-table-foot");
+              if (claimsFoot) {
+                claimsFoot.innerHTML = `<tr style="font-weight:700;background:#f8fafc"><td colspan="7">Total Indemnity</td><td>${formatCurrency(totalIndemnity)}</td><td></td></tr>`;
+              }
+            }
+
+            // Cause bar chart (built from local claims data)
+            const causeEl = document.getElementById("causeChart");
+            if (causeEl) {
+              const causeCounts = {};
+              allClaims.forEach((c) => {
+                const k = c.incident_type || "Unknown";
+                causeCounts[k] = (causeCounts[k] || 0) + 1;
+              });
+              const labels = Object.keys(causeCounts);
+              const data = Object.values(causeCounts);
+              new Chart(causeEl, {
+                type: "bar",
+                data: {
+                  labels,
+                  datasets: [
+                    {
+                      label: "Claims",
+                      data,
+                      backgroundColor: [
+                        "#007bff",
+                        "#28a745",
+                        "#ffc107",
+                        "#dc3545",
+                        "#6c757d",
+                        "#17a2b8",
+                      ],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                },
+              });
+            }
+          }
+
+          const printDate = document.getElementById("print-date");
+          if (printDate)
+            printDate.textContent = new Date().toLocaleDateString("en-PH", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+        } catch (err) {
+          console.error("Reports error:", err);
+          showToast("Failed to load reports.", "error");
+        }
+      }
+
+      // ── Auth guard + init ─────────────────────────────────────
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!requireAdmin()) {
+          return;
+        }
+        initTopbarUser();
+        loadReports();
+      });
     </script>
   </body>
 </html>
