@@ -108,12 +108,69 @@
                     class="form-control"
                     placeholder="Min. 8 characters"
                     required
+                    oninput="checkPasswordStrength(this.value)"
                   />
                   <span
                     class="input-icon-right"
                     onclick="togglePassword('password', this)"
                     >👁️</span
                   >
+                </div>
+                <!-- Password strength indicator -->
+                <div
+                  id="pw-strength"
+                  style="margin-top: 6px; font-size: 12px; display: none"
+                >
+                  <div style="display: flex; gap: 4px; margin-bottom: 4px">
+                    <div
+                      id="pw-bar-1"
+                      style="
+                        height: 4px;
+                        flex: 1;
+                        border-radius: 2px;
+                        background: #ddd;
+                      "
+                    ></div>
+                    <div
+                      id="pw-bar-2"
+                      style="
+                        height: 4px;
+                        flex: 1;
+                        border-radius: 2px;
+                        background: #ddd;
+                      "
+                    ></div>
+                    <div
+                      id="pw-bar-3"
+                      style="
+                        height: 4px;
+                        flex: 1;
+                        border-radius: 2px;
+                        background: #ddd;
+                      "
+                    ></div>
+                    <div
+                      id="pw-bar-4"
+                      style="
+                        height: 4px;
+                        flex: 1;
+                        border-radius: 2px;
+                        background: #ddd;
+                      "
+                    ></div>
+                  </div>
+                  <div id="pw-rules" style="color: var(--text-muted, #666)">
+                    <span id="rule-len" style="margin-right: 8px"
+                      >❌ 8+ characters</span
+                    >
+                    <span id="rule-up" style="margin-right: 8px"
+                      >❌ Uppercase</span
+                    >
+                    <span id="rule-num" style="margin-right: 8px"
+                      >❌ Number</span
+                    >
+                    <span id="rule-spec">❌ Special (!@#$)</span>
+                  </div>
                 </div>
               </div>
               <div class="form-group">
@@ -155,58 +212,101 @@
       </div>
     </div>
     <div id="toast-container"></div>
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
-      function handleSignup(e) {
+      function togglePassword(id, btn) {
+        const el = document.getElementById(id);
+        if (el.type === "password") {
+          el.type = "text";
+          btn.textContent = "🙈";
+        } else {
+          el.type = "password";
+          btn.textContent = "👁️";
+        }
+      }
+
+      function checkPasswordStrength(v) {
+        const box = document.getElementById("pw-strength");
+        box.style.display = v ? "block" : "none";
+        if (!v) return;
+        const rules = [
+          { id: "rule-len", ok: v.length >= 8, label: "8+ characters" },
+          { id: "rule-up", ok: /[A-Z]/.test(v), label: "Uppercase" },
+          { id: "rule-num", ok: /[0-9]/.test(v), label: "Number" },
+          { id: "rule-spec", ok: /[\W_]/.test(v), label: "Special (!@#$)" },
+        ];
+        let score = 0;
+        rules.forEach((r) => {
+          const el = document.getElementById(r.id);
+          el.textContent = (r.ok ? "✅" : "❌") + " " + r.label;
+          el.style.color = r.ok ? "#28a745" : "#dc3545";
+          if (r.ok) score++;
+        });
+        const colors = ["#ddd", "#dc3545", "#fd7e14", "#ffc107", "#28a745"];
+        for (let i = 1; i <= 4; i++) {
+          document.getElementById("pw-bar-" + i).style.background =
+            i <= score ? colors[score] : "#ddd";
+        }
+      }
+
+      async function handleSignup(e) {
         e.preventDefault();
         const password = document.getElementById("password").value;
         const confirm = document.getElementById("confirm-password").value;
+
         if (password !== confirm) {
           showToast("Error", "Passwords do not match!", "error");
           return;
         }
-        if (password.length < 8) {
-          showToast(
-            "Error",
-            "Password must be at least 8 characters.",
-            "error",
+
+        const btn = e.target.querySelector("button[type=submit]");
+        btn.disabled = true;
+        showLoading();
+
+        try {
+          const res = await api(
+            "POST",
+            "/auth/register",
+            {
+              first_name: document.getElementById("fname").value.trim(),
+              last_name: document.getElementById("lname").value.trim(),
+              email: document.getElementById("email").value.trim(),
+              password,
+              phone: document.getElementById("phone").value.trim(),
+            },
+            false,
           );
-          return;
-        }
-        simulateLoading(() => {
-          const users = getUsers();
-          const email = document.getElementById("email").value.trim();
-          if (users.find((u) => u.email === email)) {
+
+          hideLoading();
+          if (res.success) {
+            setSession(res.data.user, res.data.token);
             showToast(
-              "Error",
-              "Email already registered. Please login.",
+              "Account Created!",
+              "Welcome to the system. Redirecting...",
+              "success",
+            );
+            setTimeout(() => (window.location.href = "dashboard.html"), 1200);
+          } else {
+            // Show server validation errors or message
+            const errs = res.errors
+              ? Object.values(res.errors).flat().join(" ")
+              : res.message;
+            showToast(
+              "Registration Failed",
+              errs || "Please check your details.",
               "error",
             );
-            return;
+            btn.disabled = false;
           }
-          const newUser = {
-            id: "USR-" + Date.now(),
-            firstName: document.getElementById("fname").value.trim(),
-            lastName: document.getElementById("lname").value.trim(),
-            email,
-            password,
-            phone: document.getElementById("phone").value.trim(),
-            address: document.getElementById("address").value.trim(),
-            farmerType: document.getElementById("farmerType").value,
-            avatar: null,
-            createdAt: new Date().toISOString().split("T")[0],
-          };
-          users.push(newUser);
-          saveUsers(users);
-          localStorage.setItem("lgu_current_user", JSON.stringify(newUser));
+        } catch (err) {
+          hideLoading();
           showToast(
-            "Account Created!",
-            "Welcome to the system. Redirecting...",
-            "success",
+            "Error",
+            "Could not reach the server. Check your connection.",
+            "error",
           );
-          setTimeout(() => (window.location.href = "dashboard.html"), 1200);
-        }, 900);
+          btn.disabled = false;
+        }
       }
     </script>
   </body>
