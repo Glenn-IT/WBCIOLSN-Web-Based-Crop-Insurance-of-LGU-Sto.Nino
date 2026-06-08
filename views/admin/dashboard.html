@@ -10,7 +10,7 @@
   <body>
     <div class="app-layout">
       <!-- Admin Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar admin-sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">🛡️</div>
           <div>
@@ -40,6 +40,9 @@
               >—</span
             >
           </div>
+          <div class="nav-item" onclick="navigateTo('user-management.html')">
+            <span class="nav-icon">👥</span>User Management
+          </div>
           <div class="nav-section-label">Reports & Settings</div>
           <div class="nav-item" onclick="navigateTo('reports.html')">
             <span class="nav-icon">📈</span>Reports
@@ -53,11 +56,12 @@
             <div
               class="user-avatar"
               style="background: linear-gradient(135deg, #e74c3c, #c0392b)"
+              id="sidebar-avatar"
             >
               AL
             </div>
             <div>
-              <div class="user-name-sidebar">Admin LGU</div>
+              <div class="user-name-sidebar" id="sidebar-name">Admin LGU</div>
               <div class="user-role-sidebar">Administrator</div>
             </div>
           </div>
@@ -111,6 +115,7 @@
           >
             <div
               class="user-avatar"
+              id="topbar-avatar"
               style="
                 width: 30px;
                 height: 30px;
@@ -120,7 +125,11 @@
             >
               AL
             </div>
-            <span style="font-size: 13px; font-weight: 600">Admin LGU</span>
+            <span
+              id="topbar-user-name"
+              style="font-size: 13px; font-weight: 600"
+              >Admin LGU</span
+            >
           </div>
         </div>
       </header>
@@ -338,191 +347,251 @@
 
     <div id="toast-container"></div>
 
-    <script src="../../data/mockData.js"></script>
-    <script src="../../assets/js/app.js"></script>
+    <script src="../../assets/js/app.js?v=2"></script>
     <script>
-      requireAdmin();
-      document.getElementById("current-date").textContent =
-        new Date().toLocaleDateString("en-PH", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-
-      const apps = getApplications();
-      const claims = getClaims();
-      const stats = MOCK_DATA.dashboardStats;
-
-      // Update pending badge
-      const pendingClaims = claims.filter((c) => c.status === "Pending").length;
-      document.getElementById("pending-badge").textContent = pendingClaims;
-
-      animateCounter(document.getElementById("stat-total"), apps.length);
-      animateCounter(
-        document.getElementById("stat-approved"),
-        apps.filter((a) => a.status === "Approved").length,
-      );
-      animateCounter(
-        document.getElementById("stat-pending"),
-        apps.filter((a) => a.status === "Pending").length,
-      );
-      animateCounter(
-        document.getElementById("stat-rejected"),
-        apps.filter((a) => a.status === "Rejected").length,
-      );
-      document.getElementById("stat-indemnity").textContent = "₱8.25M";
-
-      // Recent Apps
-      document.getElementById("recent-apps-table").innerHTML = apps
-        .slice(0, 5)
-        .map(
-          (a) => `
-        <tr><td><strong>${a.id}</strong></td><td>${a.farmerName}</td><td>${a.applicationType}</td><td>${getStatusBadge(a.status)}</td></tr>
-      `,
-        )
-        .join("");
-
-      // Recent Claims
-      document.getElementById("recent-claims-table").innerHTML = claims
-        .slice(0, 5)
-        .map(
-          (c) => `
-        <tr><td><strong>${c.id}</strong></td><td>${c.applicationId}</td><td>${c.causeOfDamage}</td><td>${getStatusBadge(c.status)}</td></tr>
-      `,
-        )
-        .join("");
-
-      // Monthly Chart
-      new Chart(document.getElementById("monthlyChart"), {
-        type: "line",
-        data: {
-          labels: stats.monthlyData.labels,
-          datasets: [
-            {
-              label: "Applications",
-              data: stats.monthlyData.applications,
-              borderColor: "#1a237e",
-              backgroundColor: "rgba(26,35,126,0.08)",
-              borderWidth: 2.5,
-              fill: true,
-              tension: 0.4,
-              pointRadius: 4,
-            },
-            {
-              label: "Claims",
-              data: stats.monthlyData.claims,
-              borderColor: "#f0a500",
-              backgroundColor: "rgba(240,165,0,0.08)",
-              borderWidth: 2.5,
-              fill: true,
-              tension: 0.4,
-              pointRadius: 4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "top",
-              labels: { font: { family: "Inter", size: 12 }, padding: 14 },
-            },
-          },
-          scales: {
-            y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
-            x: { grid: { display: false } },
-          },
-        },
+      // ── Auth guard ─────────────────────────────────────────
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!requireAdmin()) {
+          return;
+        }
+        initTopbarUser();
+        loadAdminDashboard();
       });
 
-      // Status Chart
-      new Chart(document.getElementById("statusChart"), {
-        type: "doughnut",
-        data: {
-          labels: stats.statusDistribution.labels,
-          datasets: [
-            {
-              data: stats.statusDistribution.data,
-              backgroundColor: ["#28a745", "#ffc107", "#dc3545"],
-              borderWidth: 0,
-              hoverOffset: 6,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: { font: { family: "Inter", size: 12 }, padding: 16 },
-            },
-          },
-          cutout: "65%",
-        },
-      });
+      // ── Main loader ────────────────────────────────────────
+      async function loadAdminDashboard() {
+        try {
+          // 1. Stats
+          const res = await api("GET", "/dashboard/stats");
+          if (res.success) {
+            const pol = res.data.policies || {};
+            const clm = res.data.claims || {};
+            const set = (id, v) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = v ?? 0;
+            };
+            set("stat-total", pol.total ?? 0);
+            set("stat-pending", pol.pending ?? 0);
+            set("stat-approved", pol.active ?? 0);
+            set("stat-rejected", pol.rejected ?? 0);
+            const indEl = document.getElementById("stat-indemnity");
+            if (indEl)
+              indEl.textContent = formatCurrency(
+                clm.total_approved_amount ?? 0,
+              );
 
-      // Damage Chart
-      new Chart(document.getElementById("damageChart"), {
-        type: "polarArea",
-        data: {
-          labels: stats.damageByType.labels,
-          datasets: [
-            {
-              data: stats.damageByType.data,
-              backgroundColor: [
-                "rgba(26,107,60,0.7)",
-                "rgba(240,165,0,0.7)",
-                "rgba(220,53,69,0.7)",
-                "rgba(23,162,184,0.7)",
-                "rgba(108,117,125,0.7)",
-              ],
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "right",
-              labels: { font: { family: "Inter", size: 11 } },
-            },
-          },
-        },
-      });
+            // Pending badge
+            const badge = document.getElementById("pending-badge");
+            if (badge) {
+              const n =
+                (pol.pending || 0) +
+                (clm.submitted || 0) +
+                (clm.under_review || 0);
+              badge.textContent = n > 0 ? n : "";
+            }
 
-      // Indemnity Chart
-      new Chart(document.getElementById("indemnityChart"), {
-        type: "bar",
-        data: {
-          labels: stats.monthlyData.labels,
-          datasets: [
-            {
-              label: "Indemnity (₱)",
-              data: stats.monthlyData.indemnity,
-              backgroundColor: "rgba(26,107,60,0.8)",
-              borderRadius: 6,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: { color: "#f1f5f9" },
-              ticks: { callback: (v) => "₱" + (v / 1000).toFixed(0) + "K" },
-            },
-            x: { grid: { display: false } },
-          },
-        },
-      });
+            // Status doughnut chart
+            const pieEl = document.getElementById("statusChart");
+            if (pieEl) {
+              new Chart(pieEl, {
+                type: "doughnut",
+                data: {
+                  labels: ["Active/Approved", "Pending", "Rejected"],
+                  datasets: [
+                    {
+                      data: [
+                        pol.active || 0,
+                        pol.pending || 0,
+                        pol.rejected || 0,
+                      ],
+                      backgroundColor: ["#28a745", "#ffc107", "#dc3545"],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  plugins: { legend: { position: "bottom" } },
+                },
+              });
+            }
+          }
+
+          // 2. Recent applications + monthly bar chart (built from data)
+          const appsRes = await api("GET", "/policies");
+          if (appsRes.success) {
+            const apps = appsRes.data || [];
+
+            // Recent table (latest 5)
+            const appsTbody = document.getElementById("recent-apps-table");
+            if (appsTbody) {
+              const recent = apps.slice(0, 5);
+              appsTbody.innerHTML = recent.length
+                ? recent
+                    .map(
+                      (p) => `<tr>
+                    <td>${p.policy_number || "APP-" + p.id}</td>
+                    <td>${(p.first_name || "") + " " + (p.last_name || "")}</td>
+                    <td>${p.plan_name || "—"}</td>
+                    <td>${getStatusBadge(p.status)}</td>
+                  </tr>`,
+                    )
+                    .join("")
+                : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px">No applications yet.</td></tr>';
+            }
+
+            // Monthly applications — count by month from data
+            const monthApps = {};
+            apps.forEach((p) => {
+              const m = (p.created_at || "").slice(0, 7);
+              if (m) monthApps[m] = (monthApps[m] || 0) + 1;
+            });
+
+            // 3. Recent claims + monthly bar chart overlay
+            const claimsRes = await api("GET", "/claims");
+            const claims = claimsRes.success ? claimsRes.data || [] : [];
+
+            const claimsTbody = document.getElementById("recent-claims-table");
+            if (claimsTbody) {
+              const recent = claims.slice(0, 5);
+              claimsTbody.innerHTML = recent.length
+                ? recent
+                    .map(
+                      (c) => `<tr>
+                    <td>${c.claim_number || "CLM-" + c.id}</td>
+                    <td>${c.policy_number || "—"}</td>
+                    <td>${c.incident_type || "—"}</td>
+                    <td>${getStatusBadge(c.status)}</td>
+                  </tr>`,
+                    )
+                    .join("")
+                : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px">No claims yet.</td></tr>';
+            }
+
+            // Monthly claims by month
+            const monthClaims = {};
+            claims.forEach((c) => {
+              const m = (c.created_at || "").slice(0, 7);
+              if (m) monthClaims[m] = (monthClaims[m] || 0) + 1;
+            });
+
+            // Build combined month labels (last 6 months with data, or last 6 calendar months)
+            const allMonths = Array.from(
+              new Set([...Object.keys(monthApps), ...Object.keys(monthClaims)]),
+            )
+              .sort()
+              .slice(-6);
+            const chartEl = document.getElementById("monthlyChart");
+            if (chartEl) {
+              new Chart(chartEl, {
+                type: "bar",
+                data: {
+                  labels: allMonths.length ? allMonths : ["No data"],
+                  datasets: [
+                    {
+                      label: "Applications",
+                      data: allMonths.map((m) => monthApps[m] || 0),
+                      backgroundColor: "rgba(26,35,126,0.7)",
+                    },
+                    {
+                      label: "Claims",
+                      data: allMonths.map((m) => monthClaims[m] || 0),
+                      backgroundColor: "rgba(220,53,69,0.7)",
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                },
+              });
+            }
+
+            // Damage type chart (count by incident_type from claims)
+            const causeCounts = {};
+            claims.forEach((c) => {
+              const k = c.incident_type || "Unknown";
+              causeCounts[k] = (causeCounts[k] || 0) + 1;
+            });
+            const causeLabels = Object.keys(causeCounts);
+            const dmgEl = document.getElementById("damageChart");
+            if (dmgEl && causeLabels.length) {
+              new Chart(dmgEl, {
+                type: "bar",
+                data: {
+                  labels: causeLabels,
+                  datasets: [
+                    {
+                      label: "Claims",
+                      data: Object.values(causeCounts),
+                      backgroundColor: [
+                        "#007bff",
+                        "#28a745",
+                        "#ffc107",
+                        "#dc3545",
+                        "#6c757d",
+                        "#17a2b8",
+                      ],
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                },
+              });
+            }
+
+            // Monthly indemnity chart (sum approved_amount by month)
+            const monthIndemnity = {};
+            claims
+              .filter((c) => c.status === "approved" || c.status === "paid")
+              .forEach((c) => {
+                const m = (c.created_at || "").slice(0, 7);
+                if (m)
+                  monthIndemnity[m] =
+                    (monthIndemnity[m] || 0) +
+                    parseFloat(c.approved_amount || 0);
+              });
+            const indMonths = Object.keys(monthIndemnity).sort().slice(-6);
+            const indChartEl = document.getElementById("indemnityChart");
+            if (indChartEl) {
+              new Chart(indChartEl, {
+                type: "line",
+                data: {
+                  labels: indMonths.length ? indMonths : ["No data"],
+                  datasets: [
+                    {
+                      label: "Indemnity (₱)",
+                      data: indMonths.map((m) => monthIndemnity[m] || 0),
+                      borderColor: "#28a745",
+                      backgroundColor: "rgba(40,167,69,0.1)",
+                      fill: true,
+                      tension: 0.4,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  scales: { y: { beginAtZero: true } },
+                },
+              });
+            }
+          }
+
+          // Set current date
+          const dateEl = document.getElementById("current-date");
+          if (dateEl)
+            dateEl.textContent = new Date().toLocaleDateString("en-PH", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+        } catch (err) {
+          console.error("Admin dashboard error:", err);
+          showToast("Failed to load dashboard data.", "error");
+        }
+      }
     </script>
   </body>
 </html>
