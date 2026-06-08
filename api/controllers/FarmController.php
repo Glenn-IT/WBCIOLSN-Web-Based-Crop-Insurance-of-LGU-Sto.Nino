@@ -68,7 +68,9 @@ class FarmController extends BaseController {
             [$auth['id'], sanitize($data['location'])]
         );
         if ($recent) {
-            sendError('Duplicate submission detected. Your farm was already registered moments ago.', 409);
+            // Return the existing farm so the client can proceed to policy creation
+            sendSuccess($this->farms->getWithDetails($recent['id']), 'Farm already registered.', 200);
+            return;
         }
 
         $id = $this->farms->insert([
@@ -88,6 +90,8 @@ class FarmController extends BaseController {
             'planting_method'  => sanitize($data['planting_method']  ?? ''),
             'planting_date'    => sanitize($data['planting_date']    ?? ''),
             'harvest_date'     => sanitize($data['harvest_date']     ?? ''),
+            'latitude'         => isset($data['latitude'])  && $data['latitude']  !== '' ? (float)$data['latitude']  : null,
+            'longitude'        => isset($data['longitude']) && $data['longitude'] !== '' ? (float)$data['longitude'] : null,
         ]);
 
         $this->audit($auth['id'], 'create_farm', 'farms', "Created farm #$id");
