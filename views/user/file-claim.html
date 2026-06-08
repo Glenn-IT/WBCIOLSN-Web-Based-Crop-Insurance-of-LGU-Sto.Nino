@@ -155,7 +155,7 @@
               <div class="form-section-title">⚠️ Damage Information</div>
               <div class="form-row form-row-2">
                 <div class="form-group">
-                  <label class="form-label">Date of Claim *</label>
+                  <label class="form-label">Date of Claim Submitted *</label>
                   <input type="date" id="claim-date" class="form-control" />
                 </div>
                 <div class="form-group">
@@ -330,170 +330,234 @@
       </div>
     </div>
 
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
       const user = requireAuth();
-      document.getElementById("sidebar-name").textContent =
-        `${user.firstName} ${user.lastName}`;
-      document.getElementById("sidebar-avatar").textContent =
-        user.firstName[0] + user.lastName[0];
-      document.getElementById("topbar-user-name").textContent =
-        `${user.firstName} ${user.lastName}`;
-      document.getElementById("topbar-avatar").textContent =
-        user.firstName[0] + user.lastName[0];
 
-      document.getElementById("claim-date").value = new Date()
-        .toISOString()
-        .split("T")[0];
+      initTopbarUser();
 
-      // Load approved applications for selector
-      function loadAppSelector() {
-        const apps = getApplications().filter(
-          (a) => a.userId === user.id && a.status === "Approved",
-        );
-        const sel = document.getElementById("claim-app-id");
-        if (apps.length === 0) {
-          sel.innerHTML = '<option value="">No approved applications</option>';
-        } else {
+      let allClaims = [];
+      let loadedPolicies = [];
+
+      // Populate the "Select Application" dropdown with the user's active policies
+      async function loadPolicies() {
+        try {
+          const res = await api("GET", "/policies");
+          const sel = document.getElementById("claim-app-id");
+          if (!sel) return;
+
+          if (!res.success || !(res.data || []).length) {
+            sel.innerHTML =
+              '<option value="">No approved applications found</option>';
+            return;
+          }
+
+          loadedPolicies = (res.data || []).filter(
+            (p) => p.status === "active" || p.status === "approved",
+          );
+          if (!loadedPolicies.length) {
+            sel.innerHTML =
+              '<option value="">No approved applications found</option>';
+            return;
+          }
+
           sel.innerHTML =
             '<option value="">Select application ID</option>' +
-            apps
+            loadedPolicies
               .map(
-                (a) =>
-                  `<option value="${a.id}">${a.id} — ${a.cornType}</option>`,
+                (p) =>
+                  `<option value="${p.id}">${p.policy_number || "APP-" + p.id} — ${p.plan_name || "Insurance Plan"}</option>`,
               )
               .join("");
+        } catch (err) {
+          console.error("Error loading policies:", err);
         }
       }
 
+      // Populate the info box when an application is selected
       function populateFromApp() {
-        const id = document.getElementById("claim-app-id").value;
-        const apps = getApplications();
-        const app = apps.find((a) => a.id === id);
-        const box = document.getElementById("app-info-box");
-        if (app) {
-          document.getElementById("claim-loss-date").value = app.dateOfLoss;
-          document.getElementById("claim-cause").value = app.causeOfDamage;
-          document.getElementById("claim-percent").value = app.percentDamage;
-          document.getElementById("app-info-content").innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div><span style="color:var(--text-muted);font-size:11px">FARMER</span><div style="font-weight:600">${app.farmerName}</div></div>
-              <div><span style="color:var(--text-muted);font-size:11px">LOCATION</span><div style="font-weight:600">${app.farmLocation}</div></div>
-              <div><span style="color:var(--text-muted);font-size:11px">COVERAGE</span><div style="font-weight:600">${formatCurrency(app.desiredCoverage)}</div></div>
-              <div><span style="color:var(--text-muted);font-size:11px">CORN TYPE</span><div style="font-weight:600">${app.cornType}</div></div>
-            </div>
-          `;
-          box.style.display = "block";
+        const sel = document.getElementById("claim-app-id");
+        const infoBox = document.getElementById("app-info-box");
+        const infoContent = document.getElementById("app-info-content");
+        if (!sel || !infoBox || !infoContent) return;
+
+        const policy = loadedPolicies.find((p) => p.id == sel.value);
+        if (policy) {
+          infoContent.innerHTML = `
+            <strong>Policy #:</strong> ${policy.policy_number || "—"} &nbsp;|&nbsp;
+            <strong>Plan:</strong> ${policy.plan_name || "—"} &nbsp;|&nbsp;
+            <strong>Farm:</strong> ${policy.farm_location || policy.barangay || "—"} &nbsp;|&nbsp;
+            <strong>Coverage:</strong> ${typeof formatCurrency === "function" ? formatCurrency(policy.coverage_amount) : "₱" + (policy.coverage_amount || 0)}`;
+          infoBox.style.display = "block";
+
+          // Auto-fill form fields from the policy's original application data
+          const causeEl = document.getElementById("claim-cause");
+          if (causeEl && policy.cause_of_damage) {
+            for (let opt of causeEl.options) {
+              if (opt.value === policy.cause_of_damage) {
+                causeEl.value = policy.cause_of_damage;
+                break;
+              }
+            }
+          }
+
+          const percentEl = document.getElementById("claim-percent");
+          if (percentEl && policy.percent_damage)
+            percentEl.value = policy.percent_damage;
+
+          const lossDateEl = document.getElementById("claim-loss-date");
+          if (lossDateEl && policy.date_of_loss)
+            lossDateEl.value = policy.date_of_loss.split("T")[0];
+
+          const descEl = document.getElementById("claim-description");
+          if (descEl && policy.damage_description)
+            descEl.value = policy.damage_description;
+
+          // Default claim submitted date to today
+          const claimDateEl = document.getElementById("claim-date");
+          if (claimDateEl && !claimDateEl.value)
+            claimDateEl.value = new Date().toISOString().split("T")[0];
         } else {
-          box.style.display = "none";
+          infoBox.style.display = "none";
         }
+      }
+
+      async function loadClaims() {
+        try {
+          const res = await api("GET", "/claims");
+          if (!res.success) return;
+          allClaims = res.data || [];
+
+          const listEl = document.getElementById("my-claims-list");
+          const emptyEl = document.getElementById("empty-claims");
+          if (!listEl) return;
+
+          if (!allClaims.length) {
+            listEl.innerHTML = "";
+            if (emptyEl) emptyEl.style.display = "block";
+            return;
+          }
+          if (emptyEl) emptyEl.style.display = "none";
+
+          listEl.innerHTML = allClaims
+            .map(
+              (c) => `
+            <div style="padding:14px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:700;">${c.claim_number || "CLM-" + c.id}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${c.incident_type || "—"} · ${c.incident_date ? formatDate(c.incident_date) : "—"}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:13px; font-weight:600;">${typeof formatCurrency === "function" ? formatCurrency(c.estimated_loss) : "₱" + (c.estimated_loss || 0)}</div>
+                <div>${getStatusBadge(c.status)}</div>
+              </div>
+            </div>`,
+            )
+            .join("");
+        } catch (err) {
+          console.error("Error loading claims:", err);
+        }
+      }
+
+      async function submitClaim() {
+        const get = (id) => document.getElementById(id)?.value?.trim();
+
+        const policyId = get("claim-app-id");
+        const incidentType = get("claim-cause");
+        const incidentDate = get("claim-loss-date");
+        const description = get("claim-description");
+        const damagePercent = parseFloat(get("claim-percent") || 0);
+
+        if (!policyId) {
+          showToast("Please select an application.", "error");
+          return;
+        }
+        if (!incidentType) {
+          showToast("Please select the cause of damage.", "error");
+          return;
+        }
+        if (!incidentDate) {
+          showToast("Please enter the date of loss.", "error");
+          return;
+        }
+        if (!damagePercent) {
+          showToast("Please enter damage percentage.", "error");
+          return;
+        }
+
+        // Estimate loss from coverage and damage %
+        const policy = loadedPolicies.find((p) => p.id == policyId);
+        const estimatedLoss = policy
+          ? (policy.coverage_amount * damagePercent) / 100
+          : 0;
+
+        try {
+          const res = await api("POST", "/claims", {
+            policy_id: policyId,
+            incident_type: incidentType,
+            incident_date: incidentDate,
+            description: description || "",
+            estimated_loss: estimatedLoss,
+            damage_percentage: damagePercent,
+          });
+
+          if (res.success) {
+            showToast("Claim filed successfully!", "success");
+            document.getElementById("app-info-box").style.display = "none";
+            [
+              "claim-app-id",
+              "claim-date",
+              "claim-loss-date",
+              "claim-cause",
+              "claim-percent",
+              "claim-description",
+            ].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.value = "";
+            });
+            document.getElementById("claim-success-id").textContent =
+              res.data?.claim_number || "CLM-" + (res.data?.id || "");
+            document.getElementById("claim-success-modal").style.display =
+              "flex";
+            await loadClaims();
+          } else {
+            showToast(res.message || "Failed to file claim.", "error");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Error submitting claim.", "error");
+        }
+      }
+
+      function clearClaimForm() {
+        [
+          "claim-app-id",
+          "claim-date",
+          "claim-loss-date",
+          "claim-cause",
+          "claim-percent",
+          "claim-description",
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+        document.getElementById("app-info-box").style.display = "none";
+        document.getElementById("claim-photo-preview").style.display = "none";
       }
 
       function previewClaimPhoto(input) {
-        const file = input.files[0];
-        if (file) {
+        if (input.files && input.files[0]) {
           const reader = new FileReader();
           reader.onload = (e) => {
             document.getElementById("claim-preview-img").src = e.target.result;
             document.getElementById("claim-photo-preview").style.display =
               "block";
           };
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(input.files[0]);
         }
       }
 
-      function submitClaim() {
-        const appId = document.getElementById("claim-app-id").value;
-        const date = document.getElementById("claim-date").value;
-        const lossDate = document.getElementById("claim-loss-date").value;
-        const cause = document.getElementById("claim-cause").value;
-        const percent = document.getElementById("claim-percent").value;
-        const desc = document.getElementById("claim-description").value.trim();
-
-        if (!appId || !date || !lossDate || !cause || !percent || !desc) {
-          showToast(
-            "Validation Error",
-            "Please fill in all required fields.",
-            "error",
-          );
-          return;
-        }
-
-        simulateLoading(() => {
-          const apps = getApplications();
-          const app = apps.find((a) => a.id === appId);
-          const claims = getClaims();
-          const newClaim = {
-            id: generateId("CLM"),
-            applicationId: appId,
-            userId: user.id,
-            farmerName: app
-              ? app.farmerName
-              : `${user.firstName} ${user.lastName}`,
-            date,
-            dateOfLoss: lossDate,
-            causeOfDamage: cause,
-            percentDamage: percent,
-            description: desc,
-            photoUploaded: !!document.getElementById("claim-photo").files[0],
-            status: "Pending",
-            indemnity: null,
-            submittedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          claims.push(newClaim);
-          saveClaims(claims);
-          document.getElementById("claim-success-id").textContent = newClaim.id;
-          openModal("claim-success-modal");
-          clearClaimForm();
-          loadClaims();
-        }, 1000);
-      }
-
-      function clearClaimForm() {
-        document.getElementById("claim-app-id").value = "";
-        document.getElementById("claim-date").value = new Date()
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("claim-loss-date").value = "";
-        document.getElementById("claim-cause").value = "";
-        document.getElementById("claim-percent").value = "";
-        document.getElementById("claim-description").value = "";
-        document.getElementById("claim-photo").value = "";
-        document.getElementById("app-info-box").style.display = "none";
-        document.getElementById("claim-photo-preview").style.display = "none";
-      }
-
-      function loadClaims() {
-        const claims = getClaims().filter((c) => c.userId === user.id);
-        const container = document.getElementById("my-claims-list");
-        const empty = document.getElementById("empty-claims");
-        if (claims.length === 0) {
-          container.innerHTML = "";
-          empty.style.display = "block";
-        } else {
-          empty.style.display = "none";
-          container.innerHTML = claims
-            .map(
-              (c) => `
-            <div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-              <div>
-                <div style="font-weight:700;font-size:14px;color:var(--text-primary)">${c.id}</div>
-                <div style="font-size:12px;color:var(--text-muted)">App: ${c.applicationId}</div>
-                <div style="font-size:12px;color:var(--text-muted)">${c.causeOfDamage} · ${c.percentDamage}% damage</div>
-                <div style="font-size:12px;color:var(--text-muted)">${formatDate(c.date)}</div>
-                ${c.indemnity ? `<div style="font-size:13px;font-weight:600;color:var(--success);margin-top:4px">Indemnity: ${formatCurrency(c.indemnity)}</div>` : ""}
-              </div>
-              <div>${getStatusBadge(c.status)}</div>
-            </div>
-          `,
-            )
-            .join("");
-        }
-      }
-
-      loadAppSelector();
+      loadPolicies();
       loadClaims();
     </script>
   </body>
