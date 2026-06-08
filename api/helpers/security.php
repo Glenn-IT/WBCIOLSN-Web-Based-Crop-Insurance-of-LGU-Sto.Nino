@@ -59,6 +59,9 @@ function sendSecurityHeaders(): void {
  * Call early in bootstrap or before getJsonBody().
  */
 function enforceMaxPayload(int $maxBytes = 1048576): void { // default 1 MB
+    // Skip for multipart file uploads — size is governed by php.ini limits
+    $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (str_contains($ct, 'multipart/form-data')) return;
     $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
     if ($contentLength > $maxBytes) {
         sendError('Request payload too large.', 413);
