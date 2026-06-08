@@ -134,21 +134,28 @@
           </button>
           <button
             class="btn btn-ghost"
-            onclick="filterStatus('Pending')"
+            onclick="filterStatus('pending')"
             id="tab-pending"
           >
             ⏳ Pending
           </button>
           <button
             class="btn btn-ghost"
-            onclick="filterStatus('Approved')"
+            onclick="filterStatus('under_review')"
+            id="tab-under_review"
+          >
+            🔍 Under Review
+          </button>
+          <button
+            class="btn btn-ghost"
+            onclick="filterStatus('approved')"
             id="tab-approved"
           >
             ✅ Approved
           </button>
           <button
             class="btn btn-ghost"
-            onclick="filterStatus('Rejected')"
+            onclick="filterStatus('rejected')"
             id="tab-rejected"
           >
             ❌ Rejected
@@ -158,7 +165,11 @@
         <!-- Application Cards -->
         <div
           id="status-cards"
-          style="display: flex; flex-direction: column; gap: 16px"
+          style="
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+          "
         ></div>
         <div id="empty-status" class="empty-state hidden">
           <div class="empty-icon">🔍</div>
@@ -170,175 +181,156 @@
 
     <div id="toast-container"></div>
 
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
       const user = requireAuth();
-      document.getElementById("sidebar-name").textContent =
-        `${user.firstName} ${user.lastName}`;
-      document.getElementById("sidebar-avatar").textContent =
-        user.firstName[0] + user.lastName[0];
-      document.getElementById("topbar-user-name").textContent =
-        `${user.firstName} ${user.lastName}`;
-      document.getElementById("topbar-avatar").textContent =
-        user.firstName[0] + user.lastName[0];
+      initTopbarUser();
 
-      const allApps = getApplications().filter((a) => a.userId === user.id);
-      let currentFilter = "";
+      let allPolicies = [];
+      let activeFilter = "";
+
+      function getProgressStep(status) {
+        const s = (status || "").toLowerCase();
+        if (s === "active" || s === "approved") return 3;
+        if (s === "under_review") return 2;
+        if (s === "rejected" || s === "cancelled") return -1;
+        return 1; // pending
+      }
+
+      function renderStatusCard(p) {
+        const step = getProgressStep(p.status);
+        const isRejected = step === -1;
+        const pct = isRejected ? 100 : Math.round((step / 3) * 100);
+        const barColor = isRejected ? "var(--danger)" : "var(--primary)";
+
+        const cropIcon = {
+          Rice: "🌾",
+          Corn: "🌽",
+          Banana: "🍌",
+          Coconut: "🥥",
+          Mango: "🥭",
+          Sugarcane: "🎋",
+          Vegetables: "🥦",
+          Cassava: "🍠",
+          Coffee: "☕",
+          Tobacco: "🌿",
+        };
+        const icon = cropIcon[p.crop_type] || "🌱";
+
+        return `
+          <div class="card" style="border-radius:14px; overflow:hidden; display:flex; flex-direction:column; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'" onmouseout="this.style.boxShadow=''">
+            <!-- Card Top Banner -->
+            <div style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); padding: 16px 20px; display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="background:rgba(255,255,255,0.15); border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:20px;">${icon}</div>
+                <div>
+                  <div style="color:white; font-weight:700; font-size:15px;">${p.policy_number || "Policy #" + p.id}</div>
+                  <div style="color:rgba(255,255,255,0.75); font-size:12px;">${p.plan_name || "Standard Plan"}</div>
+                </div>
+              </div>
+              <div>${getStatusBadge(p.status)}</div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body" style="padding:18px 20px; flex:1;">
+              <!-- Info Grid -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                <div style="background:#f8fafc; border-radius:8px; padding:10px 12px;">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Coverage</div>
+                  <div style="font-weight:700; color:var(--primary); font-size:15px;">${formatCurrency(p.coverage_amount || 0)}</div>
+                </div>
+                <div style="background:#f8fafc; border-radius:8px; padding:10px 12px;">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Crop Type</div>
+                  <div style="font-weight:600; font-size:14px;">${p.crop_type || "—"}</div>
+                </div>
+                <div style="background:#f8fafc; border-radius:8px; padding:10px 12px;">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Location</div>
+                  <div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.farm_location || p.location || "—"}</div>
+                </div>
+                <div style="background:#f8fafc; border-radius:8px; padding:10px 12px;">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Applied</div>
+                  <div style="font-weight:600; font-size:13px;">${formatDate(p.created_at)}</div>
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+                  <span style="color:${step >= 1 && !isRejected ? "var(--primary)" : "var(--text-muted)"}; font-weight:${step >= 1 && !isRejected ? "700" : "400"};">📋 Submitted</span>
+                  <span style="color:${step >= 2 && !isRejected ? "#0288d1" : "var(--text-muted)"}; font-weight:${step >= 2 && !isRejected ? "700" : "400"};">🔍 Under Review</span>
+                  <span style="color:${isRejected ? "var(--danger)" : step >= 3 ? "var(--success)" : "var(--text-muted)"}; font-weight:${step >= 3 || isRejected ? "700" : "400"};">${isRejected ? "❌ Rejected" : "✅ Approved"}</span>
+                </div>
+                <div style="background:#e2e8f0; border-radius:99px; height:6px; overflow:hidden;">
+                  <div style="width:${pct}%; height:100%; background:${barColor}; border-radius:99px; transition:width 0.5s ease;"></div>
+                </div>
+                ${p.remarks ? `<p style="margin-top:8px; font-size:12px; color:var(--text-muted); font-style:italic;">💬 ${p.remarks}</p>` : ""}
+              </div>
+            </div>
+          </div>`;
+      }
 
       function filterStatus(status) {
-        currentFilter = status;
-        ["all", "pending", "approved", "rejected"].forEach((t) => {
-          document.getElementById(`tab-${t}`).className = "btn btn-ghost";
-        });
-        document.getElementById(`tab-${status || "all"}`).className =
-          "btn btn-primary";
+        activeFilter = status;
+
+        // Update tab button styles
+        ["all", "pending", "under_review", "approved", "rejected"].forEach(
+          function (key) {
+            const btn = document.getElementById("tab-" + key);
+            if (!btn) return;
+            const isActive = (key === "all" && status === "") || key === status;
+            btn.className = isActive ? "btn btn-primary" : "btn btn-ghost";
+          },
+        );
+
         const filtered = status
-          ? allApps.filter((a) => a.status === status)
-          : allApps;
+          ? allPolicies.filter(function (p) {
+              const s = (p.status || "").toLowerCase();
+              if (status === "approved")
+                return s === "approved" || s === "active";
+              return s === status;
+            })
+          : allPolicies;
+
         renderCards(filtered);
       }
 
-      function getProgressPercent(verStat) {
-        const vals = Object.values(verStat);
-        const verified = vals.filter((v) => v === "Verified").length;
-        return Math.round((verified / vals.length) * 100);
-      }
-
-      function renderCards(apps) {
+      function renderCards(policies) {
         const container = document.getElementById("status-cards");
         const empty = document.getElementById("empty-status");
-        if (apps.length === 0) {
+        if (!container) return;
+
+        if (policies.length === 0) {
           container.innerHTML = "";
-          empty.classList.remove("hidden");
-          return;
+          if (empty) empty.classList.remove("hidden");
+        } else {
+          container.innerHTML = policies.map(renderStatusCard).join("");
+          if (empty) empty.classList.add("hidden");
         }
-        empty.classList.add("hidden");
-        container.innerHTML = apps
-          .map((a) => {
-            const progress = getProgressPercent(a.verificationStatus);
-            const progressColor =
-              a.status === "Approved"
-                ? "var(--success)"
-                : a.status === "Rejected"
-                  ? "var(--danger)"
-                  : "var(--secondary)";
-            const statusIcons = {
-              Verified: "✅",
-              Pending: "⏳",
-              Rejected: "❌",
-            };
-
-            const steps = [
-              {
-                label: "Application Submitted",
-                date: formatDate(a.submittedAt),
-                done: true,
-                icon: "📋",
-              },
-              {
-                label: "Farm Info Verification",
-                date:
-                  a.verificationStatus.farmInfo === "Pending"
-                    ? "In Progress"
-                    : formatDate(a.updatedAt),
-                done: a.verificationStatus.farmInfo === "Verified",
-                icon: "🌾",
-                status: a.verificationStatus.farmInfo,
-              },
-              {
-                label: "Damage Report Review",
-                date:
-                  a.verificationStatus.damageReport === "Pending"
-                    ? "Awaiting"
-                    : formatDate(a.updatedAt),
-                done: a.verificationStatus.damageReport === "Verified",
-                icon: "⚠️",
-                status: a.verificationStatus.damageReport,
-              },
-              {
-                label: "Coverage Assessment",
-                date:
-                  a.verificationStatus.coverage === "Pending"
-                    ? "Awaiting"
-                    : formatDate(a.updatedAt),
-                done: a.verificationStatus.coverage === "Verified",
-                icon: "💰",
-                status: a.verificationStatus.coverage,
-              },
-              {
-                label: "Final Decision",
-                date:
-                  a.status !== "Pending" ? formatDate(a.updatedAt) : "Awaiting",
-                done: a.status === "Approved",
-                icon: "🏛️",
-                status: a.status,
-              },
-            ];
-
-            return `
-            <div class="card">
-              <div class="card-body" style="padding:24px">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-                  <div>
-                    <div style="font-size:18px;font-weight:800;color:var(--text-primary)">${a.id}</div>
-                    <div style="font-size:13px;color:var(--text-muted)">${a.cornType} · ${a.farmLocation}</div>
-                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Filed: ${formatDate(a.dateOfApplication)}</div>
-                  </div>
-                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-                    ${getStatusBadge(a.status)}
-                    <div style="font-size:12px;color:var(--text-muted)">Coverage: <strong>${formatCurrency(a.desiredCoverage)}</strong></div>
-                  </div>
-                </div>
-
-                <!-- Progress Bar -->
-                <div style="margin-bottom:20px">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Verification Progress</span>
-                    <span style="font-size:12px;font-weight:700;color:${progressColor}">${progress}% Complete</span>
-                  </div>
-                  <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
-                    <div style="height:100%;width:${progress}%;background:${progressColor};border-radius:4px;transition:width 1s ease"></div>
-                  </div>
-                </div>
-
-                <!-- Timeline Steps -->
-                <div style="display:flex;gap:0;overflow-x:auto;padding-bottom:8px">
-                  ${steps
-                    .map(
-                      (s, i) => `
-                    <div style="flex:1;min-width:100px;position:relative;text-align:center;padding:0 8px">
-                      ${i < steps.length - 1 ? `<div style="position:absolute;top:20px;left:50%;width:100%;height:2px;background:${s.done ? "var(--success)" : "#e2e8f0"};z-index:0"></div>` : ""}
-                      <div style="width:40px;height:40px;border-radius:50%;background:${s.done ? "var(--success)" : s.status === "Rejected" ? "var(--danger)" : i === 0 ? "var(--success)" : "#e2e8f0"};display:flex;align-items:center;justify-content:center;margin:0 auto 8px;position:relative;z-index:1;border:3px solid ${s.done ? "var(--success)" : "#e2e8f0"};font-size:16px">
-                        ${s.done || i === 0 ? "✓" : s.status === "Rejected" ? "✕" : s.icon}
-                      </div>
-                      <div style="font-size:11px;font-weight:600;color:${s.done ? "var(--success)" : "var(--text-muted)"};">${s.label}</div>
-                      <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${s.date}</div>
-                    </div>
-                  `,
-                    )
-                    .join("")}
-                </div>
-
-                <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-                  <div style="background:#f8fafc;border-radius:8px;padding:8px 14px;font-size:12px;display:flex;gap:6px;align-items:center;border:1px solid var(--border-color)">
-                    Farm Info: <strong>${statusIcons[a.verificationStatus.farmInfo] || "⏳"} ${a.verificationStatus.farmInfo}</strong>
-                  </div>
-                  <div style="background:#f8fafc;border-radius:8px;padding:8px 14px;font-size:12px;display:flex;gap:6px;align-items:center;border:1px solid var(--border-color)">
-                    Damage: <strong>${statusIcons[a.verificationStatus.damageReport] || "⏳"} ${a.verificationStatus.damageReport}</strong>
-                  </div>
-                  <div style="background:#f8fafc;border-radius:8px;padding:8px 14px;font-size:12px;display:flex;gap:6px;align-items:center;border:1px solid var(--border-color)">
-                    Coverage: <strong>${statusIcons[a.verificationStatus.coverage] || "⏳"} ${a.verificationStatus.coverage}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-          })
-          .join("");
       }
 
-      filterStatus("");
+      async function loadStatuses() {
+        showLoading();
+        try {
+          const res = await api("GET", "/policies");
+          hideLoading();
+          if (!res.success) {
+            showToast(
+              "Error",
+              res.message || "Failed to load application statuses.",
+              "error",
+            );
+            return;
+          }
+          allPolicies = res.data || [];
+          filterStatus(""); // render all by default
+        } catch (err) {
+          hideLoading();
+          console.error(err);
+          showToast("Error", "Could not load application statuses.", "error");
+        }
+      }
+
+      loadStatuses();
     </script>
   </body>
 </html>
