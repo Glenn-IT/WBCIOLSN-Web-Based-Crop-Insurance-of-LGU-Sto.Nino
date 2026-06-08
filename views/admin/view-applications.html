@@ -8,7 +8,7 @@
   </head>
   <body>
     <div class="app-layout">
-      <aside class="sidebar">
+      <aside class="sidebar admin-sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">🛡️</div>
           <div>
@@ -34,6 +34,9 @@
           <div class="nav-item" onclick="navigateTo('claim-verification.html')">
             <span class="nav-icon">✅</span>Claim Verification
           </div>
+          <div class="nav-item" onclick="navigateTo('user-management.html')">
+            <span class="nav-icon">👥</span>User Management
+          </div>
           <div class="nav-section-label">Reports & Settings</div>
           <div class="nav-item" onclick="navigateTo('reports.html')">
             <span class="nav-icon">📈</span>Reports
@@ -47,11 +50,12 @@
             <div
               class="user-avatar"
               style="background: linear-gradient(135deg, #e74c3c, #c0392b)"
+              id="sidebar-avatar"
             >
               AL
             </div>
             <div>
-              <div class="user-name-sidebar">Admin LGU</div>
+              <div class="user-name-sidebar" id="sidebar-name">Admin LGU</div>
               <div class="user-role-sidebar">Administrator</div>
             </div>
           </div>
@@ -100,6 +104,7 @@
           >
             <div
               class="user-avatar"
+              id="topbar-avatar"
               style="
                 width: 30px;
                 height: 30px;
@@ -109,7 +114,11 @@
             >
               AL
             </div>
-            <span style="font-size: 13px; font-weight: 600">Admin LGU</span>
+            <span
+              id="topbar-user-name"
+              style="font-size: 13px; font-weight: 600"
+              >Admin LGU</span
+            >
           </div>
         </div>
       </header>
@@ -196,9 +205,9 @@
                 style="width: 160px"
               >
                 <option value="">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active / Approved</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
           </div>
@@ -206,12 +215,11 @@
             <table>
               <thead>
                 <tr>
-                  <th>App ID</th>
+                  <th>Policy #</th>
                   <th>Farmer Name</th>
-                  <th>Address / Location</th>
-                  <th>Farm Info</th>
-                  <th>Damage Report</th>
+                  <th>Farm</th>
                   <th>Coverage</th>
+                  <th>Premium</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -248,23 +256,30 @@
       </div>
     </div>
 
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
-      requireAdmin();
       let allApps = [];
 
-      function loadApps() {
-        allApps = getApplications();
+      async function loadApps() {
+        const res = await api("GET", "/policies?per_page=200");
+        if (!res.success) {
+          showToast(
+            "Error",
+            res.message || "Failed to load applications.",
+            "error",
+          );
+          return;
+        }
+        allApps = res.data || [];
         document.getElementById("total-count").textContent = allApps.length;
         document.getElementById("approved-count").textContent = allApps.filter(
-          (a) => a.status === "Approved",
+          (a) => a.status === "active",
         ).length;
         document.getElementById("pending-count").textContent = allApps.filter(
-          (a) => a.status === "Pending",
+          (a) => a.status === "pending",
         ).length;
         document.getElementById("rejected-count").textContent = allApps.filter(
-          (a) => a.status === "Rejected",
+          (a) => a.status === "cancelled",
         ).length;
         renderTable(allApps);
       }
@@ -282,14 +297,13 @@
           .map(
             (a) => `
           <tr>
-            <td><strong>${a.id}</strong><br/><small style="color:var(--text-muted)">${formatDate(a.dateOfApplication)}</small></td>
-            <td>${a.farmerName}<br/><small style="color:var(--text-muted)">${a.farmerCategory}</small></td>
-            <td style="max-width:180px"><span style="font-size:12.5px">${a.farmLocation}</span></td>
-            <td>${getStatusBadge(a.verificationStatus.farmInfo)}</td>
-            <td>${getStatusBadge(a.verificationStatus.damageReport)}</td>
-            <td>${getStatusBadge(a.verificationStatus.coverage)}</td>
+            <td><strong>${a.policy_number || a.id}</strong><br/><small style="color:var(--text-muted)">${formatDate(a.start_date)}</small></td>
+            <td>${a.first_name ? a.first_name + " " + a.last_name : "User #" + a.user_id}<br/><small style="color:var(--text-muted)">${a.plan_name || ""}</small></td>
+            <td style="max-width:180px"><span style="font-size:12.5px">${a.farm_name || a.farm_id || "—"}</span></td>
+            <td>${formatCurrency(a.coverage_amount)}</td>
+            <td>${formatCurrency(a.premium_amount)}</td>
             <td>${getStatusBadge(a.status)}</td>
-            <td><button class="btn btn-sm btn-outline" onclick="viewApp('${a.id}')">👁 View</button></td>
+            <td><button class="btn btn-sm btn-outline" onclick="viewApp(${a.id})">👁 View</button></td>
           </tr>
         `,
           )
@@ -300,66 +314,64 @@
         const search = document
           .getElementById("search-input")
           .value.toLowerCase();
-        const status = document.getElementById("status-filter").value;
+        const status = document
+          .getElementById("status-filter")
+          .value.toLowerCase();
         const filtered = allApps.filter((a) => {
+          const name = (
+            a.first_name ? a.first_name + " " + a.last_name : ""
+          ).toLowerCase();
           const matchSearch =
-            a.id.toLowerCase().includes(search) ||
-            a.farmerName.toLowerCase().includes(search) ||
-            a.farmLocation.toLowerCase().includes(search);
+            (a.policy_number || "").toLowerCase().includes(search) ||
+            name.includes(search) ||
+            (a.farm_name || "").toLowerCase().includes(search);
           const matchStatus = !status || a.status === status;
           return matchSearch && matchStatus;
         });
         renderTable(filtered);
       }
 
-      function viewApp(id) {
-        const app = allApps.find((a) => a.id === id);
-        if (!app) return;
+      async function viewApp(id) {
+        const res = await api("GET", "/policies/" + id);
+        if (!res.success) {
+          showToast("Error", res.message || "Failed to load details.", "error");
+          return;
+        }
+        const app = res.data;
         document.getElementById("view-modal-body").innerHTML = `
           <div style="background:linear-gradient(135deg,#e8eaf6,#f0f0ff);border-radius:10px;padding:16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-            <div><p style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase">Application ID</p><p style="font-size:20px;font-weight:800;color:#1a237e">${app.id}</p></div>
-            <div style="text-align:right">${getStatusBadge(app.status)}<br/><small style="color:var(--text-muted)">Updated: ${formatDate(app.updatedAt)}</small></div>
+            <div><p style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase">Policy Number</p><p style="font-size:20px;font-weight:800;color:#1a237e">${app.policy_number || app.id}</p></div>
+            <div style="text-align:right">${getStatusBadge(app.status)}<br/><small style="color:var(--text-muted)">Updated: ${formatDate(app.updated_at)}</small></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
             <div>
               <div class="detail-section"><div class="detail-section-title">Basic Information</div>
                 <div class="detail-grid">
-                  <div class="detail-item"><label>Farmer</label><p>${app.farmerName}</p></div>
-                  <div class="detail-item"><label>Type</label><p>${app.applicationType}</p></div>
-                  <div class="detail-item"><label>Corn Type</label><p>${app.cornType}</p></div>
-                  <div class="detail-item"><label>Category</label><p>${app.farmerCategory}</p></div>
-                  <div class="detail-item"><label>Date Filed</label><p>${formatDate(app.dateOfApplication)}</p></div>
+                  <div class="detail-item"><label>Farmer</label><p>${app.first_name ? app.first_name + " " + app.last_name : "User #" + app.user_id}</p></div>
+                  <div class="detail-item"><label>Plan</label><p>${app.plan_name || "—"}</p></div>
+                  <div class="detail-item"><label>Start Date</label><p>${formatDate(app.start_date)}</p></div>
+                  <div class="detail-item"><label>End Date</label><p>${formatDate(app.end_date)}</p></div>
                 </div>
               </div>
               <div class="detail-section"><div class="detail-section-title">Farm Information</div>
                 <div class="detail-grid">
-                  <div class="detail-item" style="grid-column:1/-1"><label>Location</label><p>${app.farmLocation}</p></div>
-                  <div class="detail-item"><label>Total Area</label><p>${app.totalArea} ha</p></div>
-                  <div class="detail-item"><label>Land Category</label><p>${app.landCategory}</p></div>
-                  <div class="detail-item"><label>Tenurial Status</label><p>${app.tenuralStatus}</p></div>
-                  <div class="detail-item"><label>Planting Method</label><p>${app.plantingMethod}</p></div>
-                  <div class="detail-item"><label>Planting Date</label><p>${formatDate(app.plantingDate)}</p></div>
-                  <div class="detail-item"><label>Harvest Date</label><p>${formatDate(app.harvestDate)}</p></div>
+                  <div class="detail-item" style="grid-column:1/-1"><label>Farm Name</label><p>${app.farm_name || "—"}</p></div>
+                  <div class="detail-item"><label>Location</label><p>${app.location || "—"}</p></div>
+                  <div class="detail-item"><label>Area (ha)</label><p>${app.area_hectares || "—"}</p></div>
+                  <div class="detail-item"><label>Crop Type</label><p>${app.crop_type || "—"}</p></div>
                 </div>
               </div>
             </div>
             <div>
-              <div class="detail-section"><div class="detail-section-title">Damage Report</div>
+              <div class="detail-section"><div class="detail-section-title">Coverage & Premium</div>
                 <div class="detail-grid">
-                  <div class="detail-item"><label>Date of Loss</label><p>${formatDate(app.dateOfLoss)}</p></div>
-                  <div class="detail-item"><label>Cause</label><p>${app.causeOfDamage}</p></div>
-                  <div class="detail-item"><label>% Damage</label><p style="font-size:18px;font-weight:700;color:var(--danger)">${app.percentDamage}%</p></div>
-                  <div class="detail-item"><label>Financial Damage</label><p>${formatCurrency(app.financialDamage)}</p></div>
+                  <div class="detail-item"><label>Coverage Amount</label><p style="font-size:18px;font-weight:700;color:var(--primary)">${formatCurrency(app.coverage_amount)}</p></div>
+                  <div class="detail-item"><label>Premium Amount</label><p style="font-size:18px;font-weight:700;color:var(--success)">${formatCurrency(app.premium_amount)}</p></div>
                 </div>
               </div>
-              <div class="detail-section"><div class="detail-section-title">Coverage</div>
-                <div class="detail-item"><label>Desired Coverage</label><p style="font-size:20px;font-weight:800;color:var(--primary)">${formatCurrency(app.desiredCoverage)}</p></div>
-              </div>
-              <div class="detail-section"><div class="detail-section-title">Verification Status</div>
+              <div class="detail-section"><div class="detail-section-title">Status</div>
                 <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:8px"><span style="font-size:13px">Farm Info</span>${getStatusBadge(app.verificationStatus.farmInfo)}</div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:8px"><span style="font-size:13px">Damage Report</span>${getStatusBadge(app.verificationStatus.damageReport)}</div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:8px"><span style="font-size:13px">Coverage</span>${getStatusBadge(app.verificationStatus.coverage)}</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:8px"><span style="font-size:13px">Application Status</span>${getStatusBadge(app.status)}</div>
                 </div>
               </div>
             </div>
@@ -368,7 +380,11 @@
         openModal("view-modal");
       }
 
-      loadApps();
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!requireAdmin()) return;
+        initTopbarUser();
+        loadApps();
+      });
     </script>
   </body>
 </html>
