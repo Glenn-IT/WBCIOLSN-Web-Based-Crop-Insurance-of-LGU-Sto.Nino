@@ -275,6 +275,33 @@ class PolicyController extends BaseController {
         sendSuccess(null, 'Policy rejected.');
     }
 
+    // POST /api/policies/{id}/documents
+    public function uploadDocument(array $params): void {
+        $auth   = requireAuth();
+        $id     = assertPositiveInt($params['id']);
+        $policy = $this->policies->find($id);
+        if (!$policy) sendNotFound('Policy not found.');
+        requireOwnerOrAdmin($auth, (int)$policy['user_id']);
+
+        if (empty($_FILES['document'])) {
+            sendError('No file uploaded. Use field name "document".', 400);
+        }
+
+        $type   = sanitize($_POST['type'] ?? 'damage_photo');
+        $result = uploadFile($_FILES['document'], 'policies');
+        if (!$result['success']) sendError($result['error'], 422);
+
+        $docId = $this->policies->addDocument($id, $result, $type);
+        $this->audit($auth['id'], 'upload_policy_doc', 'policies',
+            "Uploaded {$type} document for policy #{$id}");
+
+        sendSuccess(
+            ['document_id' => $docId, 'path' => $result['path']],
+            'Document uploaded successfully.',
+            201
+        );
+    }
+
     // DELETE /api/policies/{id}
     public function destroy(array $params): void {
         $auth = requireAuth();
