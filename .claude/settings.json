@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\xampp\\\\htdocs\\\\web-based-crop-insurance\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(php -r \"echo bin2hex\\(random_bytes\\(32\\)\\);\")",
+      "Bash(Remove-Item \"c:\\\\xampp\\\\htdocs\\\\web-based-crop-insurance\\\\index.html\")",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\xampp\\\\htdocs\\\\web-based-crop-insurance\\\\views\" -Recurse -Force | Where-Object {-not $_.PSIsContainer} | Select-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\xampp\\\\htdocs\\\\web-based-crop-insurance\\\\database\" -Recurse -Force | Where-Object {-not $_.PSIsContainer} | Select-Object FullName)"
+    ]
+  }
+}
