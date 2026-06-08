@@ -1,0 +1,14 @@
+Options -Indexes
+
+# Protect .env from web access
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Route everything through index.html for SPA
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !/api/
+RewriteRule ^(.*)$ /web-based-crop-insurance/index.html [L]
