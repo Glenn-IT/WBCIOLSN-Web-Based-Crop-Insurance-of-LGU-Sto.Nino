@@ -14,7 +14,18 @@ define('JWT_SECRET',   getenv('JWT_SECRET')   ?: 'change_this_secret');
 define('JWT_EXPIRY',   (int)(getenv('JWT_EXPIRY') ?: 86400));
 
 define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 5242880));
-define('UPLOAD_PATH',     getenv('UPLOAD_PATH') ?: __DIR__ . '/../../uploads/');
+
+// Resolve upload path — if .env gives a relative path, anchor it to the project root.
+// Project root is two levels above api/config/ (__DIR__/../../).
+$_rawUploadPath = getenv('UPLOAD_PATH') ?: 'uploads/';
+if (!preg_match('/^(?:\/|[A-Za-z]:[\/\\\\])/', $_rawUploadPath)) {
+    // Relative path — make it absolute from project root
+    $_rawUploadPath = realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR
+                    . ltrim(str_replace('\\', '/', $_rawUploadPath), '/');
+}
+define('UPLOAD_PATH', rtrim(str_replace('\\', '/', $_rawUploadPath), '/') . '/');
+unset($_rawUploadPath);
+
 define('ALLOWED_TYPES',   explode(',', getenv('ALLOWED_TYPES') ?: 'jpg,jpeg,png,pdf'));
 
 // Set timezone
