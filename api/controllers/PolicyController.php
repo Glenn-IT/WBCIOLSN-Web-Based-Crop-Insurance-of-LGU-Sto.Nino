@@ -90,19 +90,31 @@ class PolicyController extends BaseController {
         // Calculate end date and premium
         $startDate   = $data['start_date'];
         $endDate     = date('Y-m-d', strtotime("+{$plan['duration_months']} months", strtotime($startDate)));
-        $totalPremium = round($farm['area_hectares'] * $plan['premium_rate'] * $plan['max_coverage_amount'], 2);
-        $coverage    = min($farm['area_hectares'] * $plan['max_coverage_amount'], (float)$plan['max_coverage_amount']);
+        $planMax     = (float)$plan['max_coverage_amount'];
+
+        // Use user-supplied desired coverage, capped at the plan maximum
+        $desiredCoverage = isset($data['coverage_amount']) && (float)$data['coverage_amount'] > 0
+            ? (float)$data['coverage_amount']
+            : $planMax;
+        $coverage    = min($desiredCoverage, $planMax);
+
+        $totalPremium = round($farm['area_hectares'] * $plan['premium_rate'] * $coverage, 2);
 
         $id = $this->policies->insert([
-            'policy_number'  => $this->policies->generatePolicyNumber(),
-            'user_id'        => $auth['id'],
-            'farm_id'        => (int)$data['farm_id'],
-            'plan_id'        => (int)$data['plan_id'],
-            'status'         => 'pending',
-            'start_date'     => $startDate,
-            'end_date'       => $endDate,
-            'total_premium'  => $totalPremium,
-            'coverage_amount'=> $coverage,
+            'policy_number'      => $this->policies->generatePolicyNumber(),
+            'user_id'            => $auth['id'],
+            'farm_id'            => (int)$data['farm_id'],
+            'plan_id'            => (int)$data['plan_id'],
+            'status'             => 'pending',
+            'start_date'         => $startDate,
+            'end_date'           => $endDate,
+            'total_premium'      => $totalPremium,
+            'coverage_amount'    => $coverage,
+            'cause_of_damage'    => sanitize($data['cause_of_damage']    ?? ''),
+            'percent_damage'     => isset($data['percent_damage'])    ? (float)$data['percent_damage']    : null,
+            'financial_damage'   => isset($data['financial_damage'])  ? (float)$data['financial_damage']  : null,
+            'damage_description' => sanitize($data['damage_description'] ?? ''),
+            'date_of_loss'       => sanitize($data['date_of_loss']       ?? ''),
         ]);
 
         $this->audit($auth['id'], 'create_policy', 'policies', "Submitted policy #$id");
@@ -117,7 +129,6 @@ class PolicyController extends BaseController {
 
         $policy = $this->policies->find($id);
         if (!$policy) sendNotFound('Policy not found.');
-        if ($policy['status'] !== 'pending') sendError('Only pending policies can be approved.', 400);
 
         $raw  = $this->body();
         guardSqlInjection($raw);
@@ -160,6 +171,86 @@ class PolicyController extends BaseController {
         sendSuccess(null, 'Policy cancelled successfully.');
     }
 
+    // PUT /api/policies/{id}  (admin: any fields; user: damage fields of pending only)
+    public function update(array $params): void {
+        $auth   = requireAuth();
+        $id     = assertPositiveInt($params['id']);
+        $policy = $this->policies->find($id);
+        if (!$policy) sendNotFound('Policy not found.');
+        requireOwnerOrAdmin($auth, (int)$policy['user_id']);
+
+        // Regular users can only edit pending policies
+        if (!in_array($auth['role'], ['admin', 'agent']) && $policy['status'] !== 'pending') {
+            sendError('Only pending policies can be updated.', 400);
+        }
+
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
+
+        $updateFields = [
+            'cause_of_damage'    => sanitize($data['cause_of_damage']    ?? $policy['cause_of_damage']),
+            'percent_damage'     => isset($data['percent_damage'])    ? (float)$data['percent_damage']    : $policy['percent_damage'],
+            'financial_damage'   => isset($data['financial_damage'])  ? (float)$data['financial_damage']  : $policy['financial_damage'],
+            'damage_description' => sanitize($data['damage_description'] ?? $policy['damage_description']),
+            'date_of_loss'       => sanitize($data['date_of_loss']       ?? $policy['date_of_loss']),
+            'coverage_amount'    => isset($data['coverage_amount'])   ? (float)$data['coverage_amount']   : $policy['coverage_amount'],
+            'remarks'            => sanitize($data['remarks']            ?? $policy['remarks'] ?? ''),
+        ];
+
+        // Verification status fields (admin only)
+        $allowedVer = ['Pending', 'Verified', 'Rejected'];
+        if (in_array($auth['role'], ['admin', 'agent'])) {
+            if (isset($data['farm_verification']) && in_array($data['farm_verification'], $allowedVer)) {
+                $updateFields['farm_verification'] = $data['farm_verification'];
+            }
+            if (isset($data['damage_verification']) && in_array($data['damage_verification'], $allowedVer)) {
+                $updateFields['damage_verification'] = $data['damage_verification'];
+            }
+            if (isset($data['coverage_verification']) && in_array($data['coverage_verification'], $allowedVer)) {
+                $updateFields['coverage_verification'] = $data['coverage_verification'];
+            }
+        }
+
+        // Admin-only: allow status change to pending
+        if (in_array($auth['role'], ['admin', 'agent']) && isset($data['status'])) {
+            $updateFields['status'] = sanitize($data['status']);
+        }
+
+        $this->policies->update($id, $updateFields);
+
+        // If farm_location provided by admin, update the farm record too
+        if (in_array($auth['role'], ['admin', 'agent']) && !empty($data['farm_location'])) {
+            $this->farms->update((int)$policy['farm_id'], ['location' => sanitize($data['farm_location'])]);
+        }
+
+        $this->audit($auth['id'], 'update_policy', 'policies', "Updated details for policy #$id");
+        sendSuccess($this->policies->getWithDetails($id), 'Policy updated successfully.');
+    }
+
+    // PUT /api/policies/{id}/review  (admin — set to under_review)
+    public function review(array $params): void {
+        $auth = requireAuth();
+        requireRole($auth, ['admin', 'agent']);
+        $id   = assertPositiveInt($params['id']);
+
+        $policy = $this->policies->find($id);
+        if (!$policy) sendNotFound('Policy not found.');
+
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
+
+        $this->policies->update($id, [
+            'status'   => 'under_review',
+            'agent_id' => $auth['id'],
+            'remarks'  => sanitize($data['remarks'] ?? ''),
+        ]);
+
+        $this->audit($auth['id'], 'review_policy', 'policies', "Marked policy #$id as under review");
+        sendSuccess($this->policies->getWithDetails($id), 'Policy set to Under Review.');
+    }
+
     // PUT /api/policies/{id}/reject  (admin/agent)
     public function reject(array $params): void {
         $auth = requireAuth();
@@ -168,7 +259,6 @@ class PolicyController extends BaseController {
 
         $policy = $this->policies->find($id);
         if (!$policy) sendNotFound('Policy not found.');
-        if ($policy['status'] !== 'pending') sendError('Only pending policies can be rejected.', 400);
 
         $raw  = $this->body();
         guardSqlInjection($raw);
@@ -183,5 +273,19 @@ class PolicyController extends BaseController {
         $this->audit($auth['id'], 'reject_policy', 'policies', "Rejected policy #$id");
         notifyPolicyRejected((int)$policy['user_id'], $policy['policy_number'], $data['remarks']);
         sendSuccess(null, 'Policy rejected.');
+    }
+
+    // DELETE /api/policies/{id}
+    public function destroy(array $params): void {
+        $auth = requireAuth();
+        requireRole($auth, ['admin', 'agent']);
+        $id = assertPositiveInt($params['id']);
+
+        $policy = $this->policies->find($id);
+        if (!$policy) sendNotFound('Policy not found.');
+
+        $this->policies->delete($id);
+        $this->audit($auth['id'], 'delete_policy', 'policies', "Deleted policy #$id ({$policy['policy_number']})");
+        sendSuccess(null, 'Policy deleted successfully.');
     }
 }
