@@ -8,7 +8,7 @@
   </head>
   <body>
     <div class="app-layout">
-      <aside class="sidebar">
+      <aside class="sidebar admin-sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">🛡️</div>
           <div>
@@ -34,6 +34,9 @@
           <div class="nav-item" onclick="navigateTo('claim-verification.html')">
             <span class="nav-icon">✅</span>Claim Verification
           </div>
+          <div class="nav-item" onclick="navigateTo('user-management.html')">
+            <span class="nav-icon">👥</span>User Management
+          </div>
           <div class="nav-section-label">Reports & Settings</div>
           <div class="nav-item" onclick="navigateTo('reports.html')">
             <span class="nav-icon">📈</span>Reports
@@ -47,11 +50,12 @@
             <div
               class="user-avatar"
               style="background: linear-gradient(135deg, #e74c3c, #c0392b)"
+              id="sidebar-avatar"
             >
               AL
             </div>
             <div>
-              <div class="user-name-sidebar">Admin LGU</div>
+              <div class="user-name-sidebar" id="sidebar-name">Admin LGU</div>
               <div class="user-role-sidebar">Administrator</div>
             </div>
           </div>
@@ -97,6 +101,7 @@
             "
           >
             <div
+              id="topbar-avatar"
               class="user-avatar"
               style="
                 width: 30px;
@@ -107,7 +112,11 @@
             >
               AL
             </div>
-            <span style="font-size: 13px; font-weight: 600">Admin LGU</span>
+            <span
+              id="topbar-user-name"
+              style="font-size: 13px; font-weight: 600"
+              >Admin LGU</span
+            >
           </div>
         </div>
       </header>
@@ -556,109 +565,146 @@
 
     <div id="toast-container"></div>
 
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
-      requireAdmin();
+      const user = requireAdmin();
+      if (!user) throw new Error("Not authenticated");
+      initTopbarUser();
 
-      // Populate activity stats
-      const apps = getApplications();
-      const claims = getClaims();
-      const verifiedClaims = claims.filter((c) => c.status === "Approved");
-      const totalIndemnity = verifiedClaims.reduce(
-        (s, c) => s + (parseFloat(c.indemnity) || 0),
-        0,
-      );
-      document.getElementById("act-apps").textContent = apps.length;
-      document.getElementById("act-claims").textContent = verifiedClaims.length;
-      document.getElementById("act-indemnity").textContent =
-        formatCurrency(totalIndemnity);
-      document.getElementById("last-login").textContent =
-        new Date().toLocaleDateString("en-PH", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
+      // ── Populate all fields with real data ──────────────────
+      function populateProfile(u) {
+        const set = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.value = val || "";
+        };
+        const setText = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = val || "";
+        };
 
-      // Password strength meter
-      document
-        .getElementById("new-pass")
-        .addEventListener("input", function () {
-          const val = this.value;
-          let score = 0;
-          if (val.length >= 8) score++;
-          if (/[A-Z]/.test(val)) score++;
-          if (/[0-9]/.test(val)) score++;
-          if (/[^A-Za-z0-9]/.test(val)) score++;
-          const bar = document.getElementById("pass-strength-bar");
-          const colors = ["", "#e74c3c", "#f0a500", "#2196F3", "#1a6b3c"];
-          const widths = ["0%", "25%", "50%", "75%", "100%"];
-          bar.style.width = widths[score];
-          bar.style.background = colors[score];
-        });
+        // Form fields — match actual HTML ids
+        set("edit-fname", u.first_name || u.firstName || "");
+        set("edit-lname", u.last_name || u.lastName || "");
+        set("edit-email", u.email || "");
+        set("edit-phone", u.phone || u.contact_number || "");
 
-      function saveProfile() {
-        const fname = document.getElementById("edit-fname").value.trim();
-        const lname = document.getElementById("edit-lname").value.trim();
-        if (!fname || !lname) {
-          showToast("Required", "Name fields are required.", "warning");
-          return;
-        }
-        simulateLoading(() => {
-          document.getElementById("profile-name").textContent =
-            `${fname} ${lname}`;
-          document.getElementById("profile-email").textContent =
-            document.getElementById("edit-email").value;
-          document.getElementById("profile-dept").textContent =
-            document.getElementById("edit-dept").value;
-          showToast(
-            "Profile Updated",
-            "Your profile has been saved successfully.",
-            "success",
-          );
-        }, 600);
+        // Display fields
+        setText("profile-role", u.role || "Admin");
+        setText("member-since", formatDate(u.created_at));
+
+        // Profile name display (topbar / sidebar already handled by initTopbarUser)
+        const fn = u.first_name || u.firstName || "A";
+        const ln = u.last_name || u.lastName || "";
+        document
+          .querySelectorAll(".profile-avatar, #profile-initials")
+          .forEach((el) => {
+            el.textContent = (fn[0] + (ln[0] || "")).toUpperCase();
+          });
+        const nameEls = document.querySelectorAll(
+          ".profile-name, #profile-full-name",
+        );
+        nameEls.forEach((el) => (el.textContent = `${fn} ${ln}`.trim()));
       }
 
-      function changePassword() {
-        const cur = document.getElementById("cur-pass").value;
-        const nw = document.getElementById("new-pass").value;
-        const conf = document.getElementById("conf-pass").value;
-        if (!cur || !nw || !conf) {
-          showToast("Required", "All password fields are required.", "warning");
-          return;
+      // ── Load profile + stats ────────────────────────────────
+      async function loadProfile() {
+        try {
+          const [profileRes, statsRes] = await Promise.all([
+            api("GET", `/users/${user.id}`),
+            api("GET", "/dashboard/stats"),
+          ]);
+          populateProfile(profileRes.success ? profileRes.data : user);
+          if (statsRes.success) {
+            const d = statsRes.data;
+            const p = d.policies || d;
+            const c = d.claims || d;
+            const pay = d.payments || d;
+            const set = (id, val) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = val ?? 0;
+            };
+            set("act-apps", p.total ?? d.total_policies ?? 0);
+            set("act-claims", c.total ?? d.total_claims ?? 0);
+            set(
+              "act-indemnity",
+              formatCurrency(
+                pay.total_payouts_disbursed ?? d.total_claims_paid ?? 0,
+              ),
+            );
+          }
+        } catch (err) {
+          console.error("loadProfile error:", err);
+          populateProfile(user);
         }
-        if (cur !== "admin2024") {
-          showToast(
-            "Incorrect Password",
-            "Current password is incorrect.",
-            "error",
-          );
-          return;
-        }
-        if (nw.length < 8) {
-          showToast(
-            "Too Short",
-            "Password must be at least 8 characters.",
-            "warning",
-          );
-          return;
-        }
-        if (nw !== conf) {
-          showToast("Mismatch", "New passwords do not match.", "error");
-          return;
-        }
-        simulateLoading(() => {
-          document.getElementById("cur-pass").value = "";
-          document.getElementById("new-pass").value = "";
-          document.getElementById("conf-pass").value = "";
-          document.getElementById("pass-strength-bar").style.width = "0";
-          showToast(
-            "Password Changed",
-            "Your password has been updated successfully.",
-            "success",
-          );
-        }, 700);
       }
+
+      // ── Save profile ────────────────────────────────────────
+      async function saveProfile() {
+        const get = (id) => document.getElementById(id)?.value?.trim() || "";
+        const data = {
+          first_name: get("edit-fname"),
+          last_name: get("edit-lname"),
+          phone: get("edit-phone"),
+        };
+        if (!data.first_name || !data.last_name) {
+          showToast("First name and last name are required.", "error");
+          return;
+        }
+        try {
+          const res = await api("PUT", `/users/${user.id}`, data);
+          if (res.success) {
+            const updated = { ...user, ...data };
+            localStorage.setItem("lgu_current_user", JSON.stringify(updated));
+            showToast("Profile updated successfully!", "success");
+            initTopbarUser();
+            populateProfile(updated);
+          } else {
+            showToast(res.message || "Failed to update profile.", "error");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Error saving profile.", "error");
+        }
+      }
+
+      // ── Change password ─────────────────────────────────────
+      async function changePassword() {
+        const current = document.getElementById("cur-pass")?.value;
+        const newPass = document.getElementById("new-pass")?.value;
+        const confirm = document.getElementById("conf-pass")?.value;
+        if (!current || !newPass || !confirm) {
+          showToast("Please fill all password fields.", "error");
+          return;
+        }
+        if (newPass !== confirm) {
+          showToast("New passwords do not match.", "error");
+          return;
+        }
+        if (newPass.length < 8) {
+          showToast("Password must be at least 8 characters.", "error");
+          return;
+        }
+        try {
+          const res = await api("POST", "/auth/change-password", {
+            current_password: current,
+            new_password: newPass,
+          });
+          if (res.success) {
+            showToast("Password changed successfully!", "success");
+            ["cur-pass", "new-pass", "conf-pass"].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.value = "";
+            });
+          } else {
+            showToast(res.message || "Failed to change password.", "error");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Error changing password.", "error");
+        }
+      }
+
+      loadProfile();
     </script>
   </body>
 </html>
