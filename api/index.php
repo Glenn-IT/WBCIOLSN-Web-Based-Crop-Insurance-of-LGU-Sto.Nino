@@ -85,6 +85,7 @@ $router->put('/policies/{id}/reject',   [PolicyController::class, 'reject']);
 $router->put('/policies/{id}/review',   [PolicyController::class, 'review']);
 $router->delete('/policies/{id}',       [PolicyController::class, 'destroy']);
 $router->put('/policies/{id}/cancel',   [PolicyController::class, 'cancel']);
+$router->post('/policies/{id}/documents', [PolicyController::class, 'uploadDocument']);
 
 // ---- Claim routes (Phase 4) ----
 $router->get('/claims',                 [ClaimController::class, 'index']);
