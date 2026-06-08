@@ -139,42 +139,13 @@
             </p>
           </div>
 
-          <div
-            style="
-              margin-top: 28px;
-              padding: 14px 18px;
-              background: #f8fafc;
-              border-radius: 10px;
-              border: 1px solid var(--border-color);
-            "
-          >
-            <p
-              style="
-                font-size: 11.5px;
-                font-weight: 700;
-                text-transform: uppercase;
-                color: var(--text-muted);
-                margin-bottom: 8px;
-                letter-spacing: 0.5px;
-              "
+          <div style="text-align: center; margin-top: 14px">
+            <a
+              class="auth-link"
+              style="font-size: 13px"
+              onclick="navigateTo('views/admin/login.html')"
+              >🛡️ Admin / Agent Login</a
             >
-              Demo Credentials
-            </p>
-            <div style="display: grid; gap: 4px">
-              <p style="font-size: 12.5px; color: var(--text-secondary)">
-                🌾 Farmer: <code>juan@example.com</code> /
-                <code>password123</code>
-              </p>
-              <p style="font-size: 12.5px; color: var(--text-secondary)">
-                🛡️ Admin:
-                <a
-                  class="auth-link"
-                  style="font-size: 12.5px"
-                  onclick="navigateTo('views/admin/login.html')"
-                  >Go to Admin Login</a
-                >
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -183,39 +154,56 @@
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <script src="data/mockData.js"></script>
     <script src="assets/js/app.js"></script>
     <script>
-      function handleLogin(e) {
+      async function handleLogin(e) {
         e.preventDefault();
         const email = document.getElementById("login-email").value.trim();
         const password = document.getElementById("login-password").value;
+        const btn = e.target.querySelector("button[type=submit]");
 
-        simulateLoading(() => {
-          const users = getUsers();
-          const user = users.find(
-            (u) => u.email === email && u.password === password,
+        btn.disabled = true;
+        showLoading();
+        try {
+          const res = await api(
+            "POST",
+            "/auth/login",
+            { email, password },
+            false,
           );
-
-          if (user) {
-            localStorage.setItem("lgu_current_user", JSON.stringify(user));
+          hideLoading();
+          if (res.success) {
+            setSession(res.data.user, res.data.token);
+            const role = res.data.user.role;
             showToast(
               "Welcome back!",
-              `Hello ${user.firstName}! Redirecting...`,
+              `Hello ${res.data.user.first_name}! Redirecting...`,
               "success",
             );
-            setTimeout(
-              () => (window.location.href = "views/user/dashboard.html"),
-              1000,
-            );
+            setTimeout(() => {
+              if (role === "admin" || role === "agent") {
+                window.location.href = "views/admin/dashboard.html";
+              } else {
+                window.location.href = "views/user/dashboard.html";
+              }
+            }, 1000);
           } else {
             showToast(
               "Login Failed",
-              "Invalid email or password. Please try again.",
+              res.message || "Invalid email or password.",
               "error",
             );
+            btn.disabled = false;
           }
-        }, 900);
+        } catch (err) {
+          hideLoading();
+          showToast(
+            "Error",
+            "Could not reach the server. Check your connection.",
+            "error",
+          );
+          btn.disabled = false;
+        }
       }
     </script>
   </body>
