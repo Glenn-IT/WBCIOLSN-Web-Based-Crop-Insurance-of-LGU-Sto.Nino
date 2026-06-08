@@ -2,8 +2,75 @@
 // app.js — Global utilities, toast, auth guards, sidebar
 // ============================================================
 
+// ── API Base ──────────────────────────────────────────────
+const API_BASE = "/web-based-crop-insurance/api";
+
+/**
+ * Fetch wrapper for the backend API.
+ * Returns parsed JSON { success, data, message } or throws on network error.
+ */
+async function api(method, endpoint, body = null, requiresAuth = true) {
+  const headers = { "Content-Type": "application/json" };
+  if (requiresAuth) {
+    const token = getToken();
+    if (token) headers["Authorization"] = "Bearer " + token;
+  }
+  const opts = { method, headers };
+  if (body && method !== "GET") opts.body = JSON.stringify(body);
+
+  const res = await fetch(API_BASE + endpoint, opts);
+  const json = await res
+    .json()
+    .catch(() => ({ success: false, message: "Invalid server response." }));
+  return { status: res.status, ...json };
+}
+
+// ── Token / Session helpers ───────────────────────────────
+function getToken() {
+  return localStorage.getItem("lgu_token") || null;
+}
+
+function setSession(user, token) {
+  localStorage.setItem("lgu_token", token);
+  localStorage.setItem("lgu_current_user", JSON.stringify(user));
+}
+
+function clearSession() {
+  localStorage.removeItem("lgu_token");
+  localStorage.removeItem("lgu_current_user");
+  localStorage.removeItem("lgu_admin_logged_in");
+}
+
+function getCurrentUser() {
+  try {
+    return JSON.parse(localStorage.getItem("lgu_current_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function isAdminLoggedIn() {
+  const user = getCurrentUser();
+  return user && (user.role === "admin" || user.role === "agent");
+}
+
 // ── Toast Notification System ─────────────────────────────
 function showToast(title, message, type = "success") {
+  // Allow 2-arg call: showToast("message", "type") — treat title as message
+  if (
+    type === "success" &&
+    (message === "success" ||
+      message === "error" ||
+      message === "warning" ||
+      message === "info")
+  ) {
+    type = message;
+    message = title;
+    title = type.charAt(0).toUpperCase() + type.slice(1);
+  } else if (message === undefined) {
+    message = title;
+    title = type.charAt(0).toUpperCase() + type.slice(1);
+  }
   const container = document.getElementById("toast-container");
   if (!container) return;
 
@@ -105,31 +172,36 @@ document.addEventListener("keydown", (e) => {
 // ── Auth Guard ────────────────────────────────────────────
 function requireAuth() {
   const user = getCurrentUser();
-  if (!user) {
+  const token = getToken();
+  if (!user || !token) {
     window.location.href = "../../index.html";
+    return null;
   }
   return user;
 }
 
 function requireAdmin() {
-  if (!isAdminLoggedIn()) {
-    window.location.href = "../../views/admin/login.html";
+  const user = getCurrentUser();
+  const token = getToken();
+  if (!user || !token || (user.role !== "admin" && user.role !== "agent")) {
+    window.location.href = "login.html";
+    return null;
   }
+  return user;
 }
 
 function logout() {
-  localStorage.removeItem("lgu_current_user");
+  api("POST", "/auth/logout").catch(() => {});
+  clearSession();
   showToast("Logged out", "You have been logged out successfully.", "info");
   setTimeout(() => (window.location.href = "../../index.html"), 1000);
 }
 
 function adminLogout() {
-  localStorage.removeItem("lgu_admin_logged_in");
+  api("POST", "/auth/logout").catch(() => {});
+  clearSession();
   showToast("Logged out", "Admin session ended.", "info");
-  setTimeout(
-    () => (window.location.href = "../../views/admin/login.html"),
-    1000,
-  );
+  setTimeout(() => (window.location.href = "login.html"), 1000);
 }
 
 // ── Sidebar Navigation ────────────────────────────────────
@@ -217,19 +289,45 @@ function initTopbarUser() {
   const user = getCurrentUser();
   const el = document.getElementById("topbar-user-name");
   const avatarEl = document.getElementById("topbar-avatar");
-  if (user && el) {
-    el.textContent = `${user.firstName} ${user.lastName}`;
-  }
-  if (user && avatarEl) {
-    avatarEl.textContent = user.firstName.charAt(0) + user.lastName.charAt(0);
+  const sidebarName = document.getElementById("sidebar-name");
+  const sidebarAvatar = document.getElementById("sidebar-avatar");
+
+  if (user) {
+    const first = user.first_name || user.firstName || "";
+    const last = user.last_name || user.lastName || "";
+    const fullName = `${first} ${last}`.trim() || user.email || "User";
+    const initials = (first.charAt(0) + last.charAt(0)).toUpperCase() || "U";
+
+    if (el) el.textContent = fullName;
+    if (avatarEl) avatarEl.textContent = initials;
+    if (sidebarName) sidebarName.textContent = fullName;
+    if (sidebarAvatar) sidebarAvatar.textContent = initials;
   }
 }
 
 function initAdminTopbar() {
+  const user = getCurrentUser();
   const el = document.getElementById("topbar-user-name");
   const avatarEl = document.getElementById("topbar-avatar");
-  if (el) el.textContent = "Admin LGU";
-  if (avatarEl) avatarEl.textContent = "AL";
+  const sidebarName = document.getElementById("sidebar-name");
+  const sidebarAvatar = document.getElementById("sidebar-avatar");
+
+  if (user) {
+    const first = user.first_name || user.firstName || "";
+    const last = user.last_name || user.lastName || "";
+    const fullName = `${first} ${last}`.trim() || user.email || "Admin";
+    const initials = (first.charAt(0) + last.charAt(0)).toUpperCase() || "AL";
+
+    if (el) el.textContent = fullName;
+    if (avatarEl) avatarEl.textContent = initials;
+    if (sidebarName) sidebarName.textContent = fullName;
+    if (sidebarAvatar) sidebarAvatar.textContent = initials;
+  } else {
+    if (el) el.textContent = "Admin LGU";
+    if (avatarEl) avatarEl.textContent = "AL";
+    if (sidebarName) sidebarName.textContent = "Admin LGU";
+    if (sidebarAvatar) sidebarAvatar.textContent = "AL";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -239,3 +337,34 @@ document.addEventListener("DOMContentLoaded", () => {
     animateCounter(el, val);
   });
 });
+
+function getStatusBadge(status) {
+  const map = {
+    active: "badge bg-success",
+    approved: "badge bg-success",
+    verified: "badge bg-success",
+    paid: "badge bg-info",
+    pending: "badge bg-warning text-dark",
+    submitted: "badge bg-warning text-dark",
+    under_review: "badge bg-primary",
+    rejected: "badge bg-danger",
+    cancelled: "badge bg-danger",
+    inactive: "badge bg-secondary",
+  };
+  const labelMap = {
+    active: "Active",
+    approved: "Approved",
+    verified: "Verified",
+    paid: "Paid",
+    pending: "Pending",
+    submitted: "Submitted",
+    under_review: "Under Review",
+    rejected: "Rejected",
+    cancelled: "Cancelled",
+    inactive: "Inactive",
+  };
+  const s = (status || "").toLowerCase().replace(/ /g, "_");
+  const cls = map[s] || "badge bg-secondary";
+  const label = labelMap[s] || status || "—";
+  return '<span class="' + cls + '">' + label + "</span>";
+}
