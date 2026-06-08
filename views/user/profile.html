@@ -382,109 +382,150 @@
 
     <div id="toast-container"></div>
 
-    <script src="../../data/mockData.js"></script>
     <script src="../../assets/js/app.js"></script>
     <script>
-      let user = requireAuth();
+      const user = requireAuth();
+      if (!user) throw new Error("Not authenticated");
+      initTopbarUser();
 
-      function loadProfile() {
-        document.getElementById("sidebar-name").textContent =
-          `${user.firstName} ${user.lastName}`;
-        document.getElementById("sidebar-avatar").textContent =
-          user.firstName[0] + user.lastName[0];
-        document.getElementById("topbar-user-name").textContent =
-          `${user.firstName} ${user.lastName}`;
-        document.getElementById("topbar-avatar").textContent =
-          user.firstName[0] + user.lastName[0];
-        document.getElementById("profile-avatar").textContent =
-          user.firstName[0] + user.lastName[0];
-        document.getElementById("profile-full-name").textContent =
-          `${user.firstName} ${user.lastName}`;
-        document.getElementById("profile-farmer-type").textContent =
-          user.farmerType || "Farmer";
-        document.getElementById("profile-email").textContent = user.email;
-        document.getElementById("profile-phone").textContent =
-          user.phone || "—";
-        document.getElementById("profile-address").textContent =
-          user.address || "—";
-        document.getElementById("profile-created").textContent = formatDate(
-          user.createdAt,
+      function populateProfile(u) {
+        const setVal = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.value = val || "";
+        };
+        const setText = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = val || "—";
+        };
+
+        // Populate edit form inputs
+        setVal("edit-fname", u.first_name || u.firstName || "");
+        setVal("edit-lname", u.last_name || u.lastName || "");
+        setVal("edit-email", u.email || "");
+        setVal("edit-phone", u.phone || u.contact_number || "");
+        setVal("edit-address", u.address || "");
+
+        // Farmer type dropdown
+        const ftSelect = document.getElementById("edit-farmer-type");
+        if (ftSelect && (u.farmer_type || u.farmerType)) {
+          ftSelect.value = u.farmer_type || u.farmerType;
+        }
+
+        // Populate display info panel
+        setText("profile-email", u.email || "");
+        setText("profile-phone", u.phone || u.contact_number || "");
+        setText("profile-address", u.address || "");
+        setText(
+          "profile-created",
+          typeof formatDate === "function"
+            ? formatDate(u.created_at)
+            : u.created_at || "",
+        );
+        setText(
+          "profile-farmer-type",
+          u.farmer_type || u.farmerType || "Farmer",
         );
 
-        document.getElementById("edit-fname").value = user.firstName;
-        document.getElementById("edit-lname").value = user.lastName;
-        document.getElementById("edit-email").value = user.email;
-        document.getElementById("edit-phone").value = user.phone || "";
-        document.getElementById("edit-address").value = user.address || "";
-        document.getElementById("edit-farmer-type").value =
-          user.farmerType || "Small Farmer";
+        // Full name & avatar
+        const fn = u.first_name || u.firstName || "F";
+        const ln = u.last_name || u.lastName || "";
+        const fullName = `${fn} ${ln}`.trim();
+        const initials = (fn[0] + (ln[0] || "")).toUpperCase();
+
+        setText("profile-full-name", fullName);
+
+        const avatarEl = document.getElementById("profile-avatar");
+        if (avatarEl) avatarEl.textContent = initials;
+        const sidebarAvatar = document.getElementById("sidebar-avatar");
+        if (sidebarAvatar) sidebarAvatar.textContent = initials;
       }
 
-      function saveProfile() {
-        simulateLoading(() => {
-          const users = getUsers();
-          const idx = users.findIndex((u) => u.id === user.id);
-          const updated = {
-            ...user,
-            firstName: document.getElementById("edit-fname").value.trim(),
-            lastName: document.getElementById("edit-lname").value.trim(),
-            email: document.getElementById("edit-email").value.trim(),
-            phone: document.getElementById("edit-phone").value.trim(),
-            address: document.getElementById("edit-address").value.trim(),
-            farmerType: document.getElementById("edit-farmer-type").value,
-          };
-          if (idx !== -1) users[idx] = updated;
-          saveUsers(users);
-          localStorage.setItem("lgu_current_user", JSON.stringify(updated));
-          user = updated;
-          loadProfile();
-          showToast(
-            "Profile Updated",
-            "Your profile changes have been saved.",
-            "success",
-          );
-        }, 700);
+      async function loadProfile() {
+        try {
+          const res = await api("GET", `/users/${user.id}`);
+          populateProfile(res.success ? res.data : user);
+        } catch {
+          populateProfile(user);
+        }
       }
 
-      function changePassword() {
-        const current = document.getElementById("current-pass").value;
-        const newPass = document.getElementById("new-pass").value;
-        const confirm = document.getElementById("confirm-pass").value;
-        if (current !== user.password) {
-          showToast("Error", "Current password is incorrect.", "error");
+      async function saveProfile() {
+        const get = (id) => document.getElementById(id)?.value?.trim() || "";
+        const data = {
+          first_name: get("edit-fname"),
+          last_name: get("edit-lname"),
+          phone: get("edit-phone"),
+        };
+        if (!data.first_name || !data.last_name) {
+          showToast("First name and last name are required.", "error");
           return;
         }
-        if (newPass.length < 8) {
-          showToast(
-            "Error",
-            "New password must be at least 8 characters.",
-            "error",
-          );
+        try {
+          const res = await api("PUT", `/users/${user.id}`, data);
+          if (res.success) {
+            const updated = { ...user, ...data };
+            localStorage.setItem("lgu_current_user", JSON.stringify(updated));
+            showToast("Profile updated successfully!", "success");
+            initTopbarUser();
+            populateProfile(updated);
+          } else {
+            showToast(res.message || "Failed to update profile.", "error");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Error saving profile.", "error");
+        }
+      }
+
+      async function changePassword() {
+        const current = document.getElementById("current-pass")?.value;
+        const newPass = document.getElementById("new-pass")?.value;
+        const confirm = document.getElementById("confirm-pass")?.value;
+        if (!current || !newPass || !confirm) {
+          showToast("Please fill all password fields.", "error");
           return;
         }
         if (newPass !== confirm) {
-          showToast("Error", "New passwords do not match.", "error");
+          showToast("New passwords do not match.", "error");
           return;
         }
-        simulateLoading(() => {
-          const users = getUsers();
-          const idx = users.findIndex((u) => u.id === user.id);
-          if (idx !== -1) {
-            users[idx].password = newPass;
+        if (newPass.length < 8) {
+          showToast("Password must be at least 8 characters.", "error");
+          return;
+        }
+        try {
+          const res = await api("POST", "/auth/change-password", {
+            current_password: current,
+            new_password: newPass,
+          });
+          if (res.success) {
+            showToast("Password changed successfully!", "success");
+            ["current-pass", "new-pass", "confirm-pass"].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.value = "";
+            });
+          } else {
+            showToast(res.message || "Failed to change password.", "error");
           }
-          saveUsers(users);
-          user.password = newPass;
-          localStorage.setItem("lgu_current_user", JSON.stringify(user));
-          document.getElementById("current-pass").value = "";
-          document.getElementById("new-pass").value = "";
-          document.getElementById("confirm-pass").value = "";
-          showToast(
-            "Password Changed",
-            "Your password has been updated successfully.",
-            "success",
-          );
-        }, 700);
+        } catch (err) {
+          console.error(err);
+          showToast("Error changing password.", "error");
+        }
       }
+
+      // Bind save/change buttons if using onclick-less buttons
+      document
+        .getElementById("profile-form")
+        ?.addEventListener("submit", (e) => {
+          e.preventDefault();
+          saveProfile();
+        });
+      document
+        .getElementById("password-form")
+        ?.addEventListener("submit", (e) => {
+          e.preventDefault();
+          changePassword();
+        });
 
       loadProfile();
     </script>
