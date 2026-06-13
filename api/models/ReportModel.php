@@ -92,7 +92,7 @@ class ReportModel extends BaseModel {
                     [$userId]
                 )['t'] ?? 0,
                 'total_payout_received' => (float)$this->rawOne(
-                    "SELECT COALESCE(SUM(amount),0) AS t FROM payments WHERE user_id=? AND type='payout' AND status='completed'",
+                    "SELECT COALESCE(SUM(approved_amount),0) AS t FROM claims WHERE user_id=? AND status IN ('approved','paid')",
                     [$userId]
                 )['t'] ?? 0,
             ],
