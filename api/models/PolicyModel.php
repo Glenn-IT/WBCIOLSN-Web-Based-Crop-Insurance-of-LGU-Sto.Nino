@@ -20,9 +20,20 @@ class PolicyModel extends BaseModel {
         return $this->rawOne(
             "SELECT p.*,
                     u.first_name, u.last_name, u.email, u.phone,
-                    f.farm_name, f.location AS farm_location, f.area_hectares,
+                    f.farm_name,
+                    f.location        AS farm_location,
+                    f.area_hectares,
+                    f.soil_type       AS land_category,
+                    f.tenurial_status,
+                    f.planting_method,
+                    f.planting_date,
+                    f.harvest_date,
+                    f.latitude,
+                    f.longitude,
+                    f.farmer_category,
+                    f.application_type,
                     ct.name AS crop_type,
-                    pl.plan_name, pl.coverage_type,
+                    pl.plan_name, pl.coverage_type, pl.coverage_percent,
                     CONCAT(a.first_name,' ',a.last_name) AS agent_name
              FROM policies p
              JOIN users u   ON u.id  = p.user_id
@@ -73,5 +84,28 @@ class PolicyModel extends BaseModel {
     public function countAll(string $status = ''): int {
         if ($status) return $this->count('status = ?', [$status]);
         return $this->count();
+    }
+
+    public function getDocuments(int $policyId): array {
+        return $this->raw(
+            "SELECT * FROM policy_documents WHERE policy_id = ? ORDER BY uploaded_at DESC",
+            [$policyId]
+        );
+    }
+
+    public function addDocument(int $policyId, array $file, string $type = 'damage_photo'): int {
+        $stmt = $this->db->prepare(
+            "INSERT INTO policy_documents (policy_id, document_type, file_name, file_path, file_type, file_size)
+             VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([
+            $policyId,
+            $type,
+            $file['filename'],
+            $file['path'],
+            $file['mime'],
+            $file['size'],
+        ]);
+        return (int)$this->db->lastInsertId();
     }
 }
