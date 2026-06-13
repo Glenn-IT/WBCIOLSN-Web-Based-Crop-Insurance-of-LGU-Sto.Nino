@@ -1,6 +1,6 @@
 # Project Progress
 
-progress: 84
+progress: 83
 status: Ongoing
 
 Review the existing project implementation and compute the overall project completion as the total average of:
