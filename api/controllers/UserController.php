@@ -120,9 +120,11 @@ class UserController extends BaseController {
         ]);
 
         $updateData = [
-            'first_name' => sanitize($data['first_name']),
-            'last_name'  => sanitize($data['last_name']),
-            'phone'      => sanitize($data['phone'] ?? $user['phone'] ?? ''),
+            'first_name'  => sanitize($data['first_name']),
+            'last_name'   => sanitize($data['last_name']),
+            'phone'       => sanitize($data['phone']        ?? $user['phone']        ?? ''),
+            'address'     => sanitize($data['address']      ?? $user['address']      ?? ''),
+            'farmer_type' => sanitize($data['farmer_type']  ?? $user['farmer_type']  ?? ''),
         ];
 
         // Admin can also update role and email
