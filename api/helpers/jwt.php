@@ -53,6 +53,10 @@ function getBearerToken(): ?string {
     if (preg_match('/Bearer\s+(.+)/i', $auth, $matches)) {
         return trim($matches[1]);
     }
+    // Final fallback: cookie set by JS login handler (handles Apache header stripping)
+    if (!empty($_COOKIE['lgu_token'])) {
+        return trim($_COOKIE['lgu_token']);
+    }
     return null;
 }
 
