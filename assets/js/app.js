@@ -33,12 +33,17 @@ function getToken() {
 function setSession(user, token) {
   localStorage.setItem("lgu_token", token);
   localStorage.setItem("lgu_current_user", JSON.stringify(user));
+  // Mirror token in a cookie so PHP auth-guard.php can verify it server-side
+  const maxAge = 86400; // 24 h — matches JWT_EXPIRY
+  document.cookie = `lgu_token=${token};path=/;max-age=${maxAge};SameSite=Lax`;
 }
 
 function clearSession() {
   localStorage.removeItem("lgu_token");
   localStorage.removeItem("lgu_current_user");
   localStorage.removeItem("lgu_admin_logged_in");
+  // Expire the auth cookie
+  document.cookie = "lgu_token=;path=/;max-age=0;SameSite=Lax";
 }
 
 function getCurrentUser() {
@@ -174,7 +179,7 @@ function requireAuth() {
   const user = getCurrentUser();
   const token = getToken();
   if (!user || !token) {
-    window.location.href = "../../index.html";
+    window.location.href = "../../index.php";
     return null;
   }
   return user;
@@ -184,7 +189,7 @@ function requireAdmin() {
   const user = getCurrentUser();
   const token = getToken();
   if (!user || !token || (user.role !== "admin" && user.role !== "agent")) {
-    window.location.href = "login.html";
+    window.location.href = "login.php";
     return null;
   }
   return user;
@@ -194,14 +199,14 @@ function logout() {
   api("POST", "/auth/logout").catch(() => {});
   clearSession();
   showToast("Logged out", "You have been logged out successfully.", "info");
-  setTimeout(() => (window.location.href = "../../index.html"), 1000);
+  setTimeout(() => (window.location.href = "../../index.php"), 1000);
 }
 
 function adminLogout() {
   api("POST", "/auth/logout").catch(() => {});
   clearSession();
   showToast("Logged out", "Admin session ended.", "info");
-  setTimeout(() => (window.location.href = "login.html"), 1000);
+  setTimeout(() => (window.location.href = "login.php"), 1000);
 }
 
 // ── Sidebar Navigation ────────────────────────────────────
@@ -330,12 +335,149 @@ function initAdminTopbar() {
   }
 }
 
+// ── Notifications ─────────────────────────────────────────
+async function initNotifications() {
+  if (!getToken()) return;
+  try {
+    const res = await api("GET", "/notifications/unread-count");
+    if (res.success) updateNotifBadge(res.data.unread ?? 0);
+  } catch (e) {}
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    const dropdown = document.getElementById("notif-dropdown");
+    const btn = document.getElementById("notif-btn");
+    if (
+      dropdown &&
+      dropdown.style.display === "block" &&
+      !dropdown.contains(e.target) &&
+      btn &&
+      !btn.contains(e.target)
+    ) {
+      dropdown.style.display = "none";
+    }
+  });
+}
+
+function updateNotifBadge(count) {
+  const dot = document.getElementById("notif-dot");
+  const badge = document.getElementById("notif-count");
+  if (dot) dot.style.display = count > 0 ? "inline-block" : "none";
+  if (badge) {
+    badge.style.display = count > 0 ? "inline" : "none";
+    badge.textContent = count > 99 ? "99+" : count;
+  }
+}
+
+async function toggleNotifDropdown() {
+  const dropdown = document.getElementById("notif-dropdown");
+  if (!dropdown) return;
+  if (dropdown.style.display === "block") {
+    dropdown.style.display = "none";
+    return;
+  }
+  dropdown.style.display = "block";
+  await loadNotifications();
+}
+
+async function loadNotifications() {
+  const list = document.getElementById("notif-list");
+  if (list)
+    list.innerHTML =
+      '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  try {
+    const res = await api("GET", "/notifications?per_page=10");
+    if (!res.success) {
+      if (list)
+        list.innerHTML =
+          '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Failed to load.</div>';
+      return;
+    }
+    const items = res.data || [];
+    updateNotifBadge(items.filter((n) => !parseInt(n.is_read)).length);
+    if (!items.length) {
+      if (list)
+        list.innerHTML =
+          '<div style="padding:28px;text-align:center;color:var(--text-muted);font-size:13px">🔔 No notifications yet.</div>';
+      return;
+    }
+    if (list) {
+      list.innerHTML = items
+        .map((n) => {
+          const unread = !parseInt(n.is_read);
+          const bg = unread ? "#f0f4ff" : "#fff";
+          return `<div
+            data-notif-id="${n.id}"
+            onclick="markNotifRead(${n.id}, this, '${(n.link || "").replace(/'/g, "\\'")}')"
+            style="padding:12px 14px;border-bottom:1px solid var(--border-color);
+              cursor:pointer;background:${bg};transition:background 0.15s"
+            onmouseover="this.style.background='#f8fafc'"
+            onmouseout="this.style.background='${bg}'">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px">
+                ${unread ? '<span style="width:8px;height:8px;border-radius:50%;background:#1a73e8;flex-shrink:0;display:inline-block"></span>' : ""}
+                <strong style="font-size:13px;line-height:1.3">${n.title}</strong>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">${timeAgo(n.created_at)}</span>
+            </div>
+            <p style="font-size:12.5px;color:var(--text-secondary);margin:4px 0 0 ${unread ? "14px" : "0"}">${n.message}</p>
+          </div>`;
+        })
+        .join("");
+    }
+  } catch (e) {
+    if (list)
+      list.innerHTML =
+        '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Error loading notifications.</div>';
+  }
+}
+
+async function markNotifRead(id, el, link) {
+  try {
+    await api("PUT", `/notifications/${id}/read`);
+    if (el) {
+      el.style.background = "#fff";
+      el.onmouseout = () => (el.style.background = "#fff");
+      const dot = el.querySelector('span[style*="border-radius:50%"]');
+      if (dot) dot.remove();
+    }
+    const countRes = await api("GET", "/notifications/unread-count");
+    if (countRes.success) updateNotifBadge(countRes.data.unread ?? 0);
+  } catch (e) {}
+  if (link) window.location.href = link;
+}
+
+async function markAllNotifsRead() {
+  try {
+    await api("PUT", "/notifications/read-all");
+    updateNotifBadge(0);
+    await loadNotifications();
+  } catch (e) {}
+}
+
+async function clearNotifications() {
+  try {
+    await api("DELETE", "/notifications/clear");
+    await loadNotifications();
+  } catch (e) {}
+}
+
+function timeAgo(dateString) {
+  if (!dateString) return "";
+  const diff = Math.floor((Date.now() - new Date(dateString)) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Auto-init counters
   document.querySelectorAll("[data-counter]").forEach((el) => {
     const val = parseFloat(el.dataset.counter);
     animateCounter(el, val);
   });
+  // Auto-init notifications on all pages that have the topbar bell
+  if (document.getElementById("notif-btn")) initNotifications();
 });
 
 function getStatusBadge(status) {
