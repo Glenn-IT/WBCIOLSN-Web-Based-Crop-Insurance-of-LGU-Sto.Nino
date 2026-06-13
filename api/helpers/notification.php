@@ -63,7 +63,7 @@ function notifyPolicyApproved(int $userId, string $policyNumber): void {
         'Policy Approved ✅',
         "Your policy <strong>{$policyNumber}</strong> has been approved and is now active.",
         'success',
-        '/views/user/my-applications.html',
+        '/web-based-crop-insurance/views/user/my-applications.php',
         true
     );
 }
@@ -74,7 +74,7 @@ function notifyPolicyRejected(int $userId, string $policyNumber, string $reason 
         "Your application for policy <strong>{$policyNumber}</strong> was rejected."
             . ($reason ? " Reason: {$reason}" : ''),
         'error',
-        '/views/user/my-applications.html',
+        '/web-based-crop-insurance/views/user/my-applications.php',
         true
     );
 }
@@ -92,7 +92,7 @@ function notifyClaimStatusUpdated(int $userId, string $claimNumber, string $stat
         $title,
         "Your claim <strong>{$claimNumber}</strong> status has been updated to: <strong>{$status}</strong>.",
         $type,
-        '/views/user/application-status.html',
+        '/web-based-crop-insurance/views/user/application-status.php',
         true
     );
 }
