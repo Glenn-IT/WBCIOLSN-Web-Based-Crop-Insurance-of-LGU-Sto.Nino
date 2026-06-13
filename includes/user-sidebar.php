@@ -1,0 +1,67 @@
+<?php
+// Set $currentPage before including to highlight the active nav item.
+// Accepted values: 'dashboard', 'new-application', 'my-applications',
+//                  'application-status', 'file-claim', 'profile'
+$currentPage = $currentPage ?? '';
+
+function userNavItem(string $page, string $icon, string $label, string $current): string {
+    $active = ($current === $page) ? ' active' : '';
+    return '<div class="nav-item' . $active . '" onclick="navigateTo(\'' . $page . '.php\')">'
+         . '<span class="nav-icon">' . $icon . '</span>' . htmlspecialchars($label)
+         . '</div>';
+}
+?>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">🌽</div>
+    <div>
+      <div class="sidebar-title">LGU Sto. Niño</div>
+      <div class="sidebar-subtitle">Crop Insurance System</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <?= userNavItem('dashboard', '📊', 'Dashboard', $currentPage) ?>
+
+    <div class="nav-section-label">Applications</div>
+    <?= userNavItem('new-application', '📝', 'New Application', $currentPage) ?>
+    <?= userNavItem('my-applications', '📁', 'My Applications', $currentPage) ?>
+    <?= userNavItem('application-status', '🔍', 'Application Status', $currentPage) ?>
+
+    <div class="nav-section-label">Claims</div>
+    <?= userNavItem('file-claim', '📩', 'File a Claim', $currentPage) ?>
+
+    <div class="nav-section-label">Account</div>
+    <?= userNavItem('profile', '👤', 'My Profile', $currentPage) ?>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info-sidebar" onclick="navigateTo('profile.php')">
+      <div class="user-avatar" id="sidebar-avatar">--</div>
+      <div>
+        <div class="user-name-sidebar" id="sidebar-name">Loading...</div>
+        <div class="user-role-sidebar">Farmer</div>
+      </div>
+    </div>
+    <button
+      onclick="logout()"
+      style="
+        width: 100%;
+        margin-top: 8px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.7);
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        font-family: inherit;
+      "
+      onmouseover="this.style.background='rgba(220,53,69,0.2)';this.style.color='#ff6b7a';"
+      onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)';"
+    >
+      🚪 Sign Out
+    </button>
+  </div>
+</aside>
