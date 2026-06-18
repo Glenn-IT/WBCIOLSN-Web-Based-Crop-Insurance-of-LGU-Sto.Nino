@@ -6,9 +6,9 @@ Options -Indexes
     Deny from all
 </Files>
 
-# Route everything through index.html for SPA
+# Route everything through index.php
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !/api/
-RewriteRule ^(.*)$ /web-based-crop-insurance/index.html [L]
+RewriteRule ^(.*)$ /web-based-crop-insurance/index.php [L]
