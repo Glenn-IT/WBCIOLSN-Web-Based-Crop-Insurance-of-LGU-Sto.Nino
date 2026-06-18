@@ -1,6 +1,6 @@
-# Version Control Setup Prompt (Reusable)
+# Version Control Setup Prompt — PHP (Reusable)
 
-Copy and paste this prompt to use the same version control system on any project.
+Copy and paste this prompt to use the same version control system on any PHP project.
 
 ---
 
@@ -35,17 +35,13 @@ Present a plan first in this format and wait for my approval:
 
 After I approve the plan, do the following:
 
-1. Create a `components/under-construction.php` (or equivalent for this project's language/framework)
-   that outputs a full styled page saying "Under Construction" with the current version number,
-   and calls exit immediately so the rest of the page does not run.
-
-   Structure it like:
+1. Create `components/under-construction.php`:
    - define('CURRENT_VERSION', 'v1.00') at the top
-   - A styled card UI with a hard-hat icon, the version badge, title, description, and a Go Back button
+   - A styled full-page HTML card with a hard-hat icon, version badge, title, description, and a Go Back button
    - exit at the very bottom
 
-2. Add a `require_once` of that file as the very first line of every page that should be gated,
-   so it blocks the page content and shows Under Construction instead.
+2. Add `<?php require_once '../../components/under-construction.php'; ?>` as the very first line
+   of every page that should be gated, so it blocks the page content and shows Under Construction instead.
 
 3. Pages that are part of the current version (v1.00) should NOT have the gate.
 
@@ -79,10 +75,8 @@ Present the plan first and wait for my approval before making any changes.
 
 ## Notes for Using This Prompt
 
-- Works best with **PHP projects** as-is. For other languages adjust the include strategy:
-  - **Python/Flask**: use a route decorator or redirect
-  - **Node/Express**: use middleware
-  - **HTML only**: replace the file with a static under-construction HTML page
+- This prompt is written for **PHP projects**. For other languages, see the matching prompt file in this folder:
+  - `Version-Control-Setup-Prompt-VBNET.md` — VB.NET Windows Forms (Visual Studio 2022)
 
 - The version numbering used here is `v1.00, v1.01, v1.02 ...`. The number of versions equals
   the number of pages/features in your project — one unlock per version.
