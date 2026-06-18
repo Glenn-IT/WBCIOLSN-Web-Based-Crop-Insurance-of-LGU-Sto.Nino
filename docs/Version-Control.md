@@ -125,20 +125,20 @@ git push origin --tags  # push all tags at once
 
 | Version | Tag Name | Commit Hash |
 |---------|----------|-------------|
-| v1.00   | v1.00    |             |
-| v1.01   | v1.01    |             |
-| v1.02   | v1.02    |             |
-| v1.03   | v1.03    |             |
-| v1.04   | v1.04    |             |
-| v1.05   | v1.05    |             |
-| v1.06   | v1.06    |             |
-| v1.07   | v1.07    |             |
-| v1.08   | v1.08    |             |
-| v1.09   | v1.09    |             |
-| v1.10   | v1.10    |             |
-| v1.11   | v1.11    |             |
-| v1.12   | v1.12    |             |
-| v1.13   | v1.13    |             |
+| v1.00   | v1.00    | 2948979b165ef415d2ec010a0c0876dfb05a3274 |
+| v1.01   | v1.01    | 8cdd0507e678308e5b0fdd5acfb7c8c83159b801 |
+| v1.02   | v1.02    | bb013a3b029b2e68d67480eb28bb730674071fb9 |
+| v1.03   | v1.03    | 5e2211452553a2e8f25e492ff05f9223b585cdec |
+| v1.04   | v1.04    | f42f31daf95fedee0e5952f90ab9426f3782a4d2 |
+| v1.05   | v1.05    | 301d5b22de9d2b2ff514e24b923f05826841f465 |
+| v1.06   | v1.06    | 259d5ea457dbd22a3adde35b51882d0a666ca80f |
+| v1.07   | v1.07    | fff0870cb42d42b5faa0d88e3c57cde3036651f1 |
+| v1.08   | v1.08    | 7d7b6cfa7be990030eb6110833f975415fb078c4 |
+| v1.09   | v1.09    | c4bd922e18a0c06e0fb3bab51ac3ff35c3e08b65 |
+| v1.10   | v1.10    | d023a10665055e9bf62efa5ed5c73a536129d481 |
+| v1.11   | v1.11    | fc99fbf8f5a0c1b3b8f9f385e3ec960549301a9f |
+| v1.12   | v1.12    | b64c5ab29642f102d749aef26670ab0ac03b2071 |
+| v1.13   | v1.13    | e63714d94852abde6a3ab1ea7d0b168d5a9f33f3 |
 
 Fill commit hashes after all versions are tagged using:
 
