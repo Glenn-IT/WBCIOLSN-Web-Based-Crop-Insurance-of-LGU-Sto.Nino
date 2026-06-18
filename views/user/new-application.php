@@ -1,4 +1,3 @@
-<?php require_once '../../components/under-construction.php'; ?>
 <?php
 $pageTitle      = 'New Application — Crop Insurance';
 $basePath       = '../../';
