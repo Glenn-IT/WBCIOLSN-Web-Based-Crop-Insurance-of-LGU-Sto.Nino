@@ -199,14 +199,14 @@ function logout() {
   api("POST", "/auth/logout").catch(() => {});
   clearSession();
   showToast("Logged out", "You have been logged out successfully.", "info");
-  setTimeout(() => (window.location.href = "../../index.php"), 1000);
+  setTimeout(() => window.location.replace("../../index.php"), 1000);
 }
 
 function adminLogout() {
   api("POST", "/auth/logout").catch(() => {});
   clearSession();
   showToast("Logged out", "Admin session ended.", "info");
-  setTimeout(() => (window.location.href = "login.php"), 1000);
+  setTimeout(() => window.location.replace("login.php"), 1000);
 }
 
 // ── Sidebar Navigation ────────────────────────────────────
@@ -469,6 +469,22 @@ function timeAgo(dateString) {
   if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
   return Math.floor(diff / 86400) + "d ago";
 }
+
+// Guard against bfcache restoring a protected page after logout.
+// When the browser shows a page from its back-forward cache (persisted = true),
+// re-check the session and redirect to login if the token is gone.
+window.addEventListener("pageshow", function (e) {
+  if (!e.persisted) return;
+  const token = localStorage.getItem("lgu_token");
+  if (!token) {
+    const isAdmin = window.location.pathname.includes("/admin/");
+    window.location.replace(
+      isAdmin
+        ? "/web-based-crop-insurance/views/admin/login.php"
+        : "/web-based-crop-insurance/index.php"
+    );
+  }
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   // Auto-init counters

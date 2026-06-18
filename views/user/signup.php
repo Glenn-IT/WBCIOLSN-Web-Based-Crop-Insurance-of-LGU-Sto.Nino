@@ -9,7 +9,10 @@ require_once '../../includes/head.php';
 
       <!-- Left Panel -->
       <div class="auth-left">
-        <div class="auth-logo">🌽</div>
+        <div class="auth-logo" style="background:transparent;border:none">
+          <img src="../../img/Agri-Sto-Logo.png" alt="LGU Sto. Niño Logo"
+            style="width:90px;height:90px;object-fit:contain" />
+        </div>
         <h1>Join the LGU Sto. Niño Crop Insurance Program</h1>
         <p>
           Register as a farmer to access insurance coverage, file claims, and
@@ -136,6 +139,15 @@ require_once '../../includes/head.php';
 
   <?php require_once '../../includes/toast.php'; ?>
   <script>
+    // Redirect already-logged-in users away from the signup page
+    (function () {
+      const token = localStorage.getItem('lgu_token');
+      const user  = (() => { try { return JSON.parse(localStorage.getItem('lgu_current_user')); } catch { return null; } })();
+      if (token && user) {
+        window.location.replace('dashboard.php');
+      }
+    })();
+
     function formatPhoneInput(input) {
       // Strip all non-digit characters except leading +
       let v = input.value;
@@ -220,7 +232,7 @@ require_once '../../includes/head.php';
         if (res.success) {
           setSession(res.data.user, res.data.token);
           showToast('Account Created!', 'Welcome to the system. Redirecting...', 'success');
-          setTimeout(() => { window.location.href = 'dashboard.php'; }, 1200);
+          setTimeout(() => { window.location.replace('dashboard.php'); }, 1200);
         } else {
           const errs = res.errors
             ? Object.values(res.errors).flat().join(' ')

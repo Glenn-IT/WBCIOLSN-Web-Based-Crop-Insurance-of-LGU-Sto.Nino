@@ -9,7 +9,10 @@ require_once 'includes/head.php';
 
       <!-- Left Panel -->
       <div class="auth-left">
-        <div class="auth-logo">🌽</div>
+        <div class="auth-logo" style="background:transparent;border:none">
+          <img src="./img/Agri-Sto-Logo.png" alt="LGU Sto. Niño Logo"
+            style="width:90px;height:90px;object-fit:contain" />
+        </div>
         <h1>LGU Sto. Niño<br />Crop Insurance System</h1>
         <p>
           A comprehensive digital platform for managing crop insurance
@@ -103,6 +106,18 @@ require_once 'includes/head.php';
 
   <?php $basePath = './'; require_once 'includes/toast.php'; ?>
   <script>
+    // Redirect already-logged-in users away from the login page
+    (function () {
+      const token = localStorage.getItem('lgu_token');
+      const user  = (() => { try { return JSON.parse(localStorage.getItem('lgu_current_user')); } catch { return null; } })();
+      if (token && user) {
+        const dest = (user.role === 'admin' || user.role === 'agent')
+          ? 'views/admin/dashboard.php'
+          : 'views/user/dashboard.php';
+        window.location.replace(dest);
+      }
+    })();
+
     async function handleLogin(e) {
       e.preventDefault();
       const email    = document.getElementById('login-email').value.trim();
@@ -120,9 +135,9 @@ require_once 'includes/head.php';
           showToast('Welcome back!', `Hello ${res.data.user.first_name}! Redirecting...`, 'success');
           setTimeout(() => {
             if (role === 'admin' || role === 'agent') {
-              window.location.href = 'views/admin/dashboard.php';
+              window.location.replace('views/admin/dashboard.php');
             } else {
-              window.location.href = 'views/user/dashboard.php';
+              window.location.replace('views/user/dashboard.php');
             }
           }, 1000);
         } else {

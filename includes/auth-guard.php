@@ -18,6 +18,10 @@
 
 $guardRole = $guardRole ?? 'user';
 
+// Prevent the browser from caching protected pages (blocks bfcache restoration after logout)
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
+
 // Resolve project root regardless of which view includes this file
 $projectRoot = dirname(__DIR__);
 
