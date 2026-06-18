@@ -51,7 +51,7 @@ function emailTemplate(string $title, string $body): string {
  * Send password reset email
  */
 function sendPasswordResetEmail(string $to, string $name, string $token): bool {
-    $resetUrl = APP_URL . '/views/user/forgot-password.html?token=' . urlencode($token);
+    $resetUrl = APP_URL . '/views/user/forgot-password.php?token=' . urlencode($token);
     $body     = emailTemplate('Password Reset Request', "
         <p>Hi <strong>{$name}</strong>,</p>
         <p>We received a request to reset your password. Click the button below to proceed:</p>
@@ -75,7 +75,7 @@ function sendWelcomeEmail(string $to, string $name): bool {
         <p>Hi <strong>{$name}</strong>,</p>
         <p>Your account has been successfully created. You can now log in and apply for crop insurance.</p>
         <p style='text-align:center;margin:24px 0;'>
-          <a href='" . APP_URL . "/views/user/dashboard.html'
+          <a href='" . APP_URL . "/views/user/dashboard.php'
              style='background:#2e7d32;color:#fff;padding:12px 28px;border-radius:5px;text-decoration:none;font-size:15px;'>
              Go to Dashboard
           </a>
