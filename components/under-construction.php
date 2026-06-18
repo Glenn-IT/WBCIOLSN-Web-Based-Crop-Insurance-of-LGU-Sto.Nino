@@ -1,5 +1,5 @@
 <?php
-define('CURRENT_VERSION', 'v1.11');
+define('CURRENT_VERSION', 'v1.12');
 ?>
 <!doctype html>
 <html lang="en">
