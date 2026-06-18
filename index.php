@@ -93,7 +93,7 @@ require_once 'includes/head.php';
         <div style="text-align:center;margin-top:14px">
           <a class="auth-link" style="font-size:13px"
             onclick="navigateTo('views/admin/login.php')">
-            🛡️ Admin / Agent Login
+            🛡️ Admin
           </a>
         </div>
       </div>
