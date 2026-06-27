@@ -1,31 +1,62 @@
 <?php
 // ============================================================
-// Mailer Helper
+// Mailer Helper — PHPMailer + Gmail SMTP
 // Web-Based Crop Insurance System
-// Wraps PHP's mail() with simple HTML template support
-// (Swap this out for PHPMailer when composer is available)
 // ============================================================
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
 /**
- * Send a plain/HTML email
+ * Send an HTML email via Gmail SMTP (PHPMailer).
+ * Falls back to PHP mail() if PHPMailer is not available.
  */
 function sendMail(string $to, string $subject, string $htmlBody): bool {
-    $from     = getenv('MAIL_FROM')      ?: 'noreply@cropinsurance.ph';
-    $fromName = getenv('MAIL_FROM_NAME') ?: 'Crop Insurance System';
+    if (!class_exists(PHPMailer::class)) {
+        // Fallback: native mail()
+        $from     = getenv('MAIL_FROM')      ?: 'noreply@cropinsurance.ph';
+        $fromName = getenv('MAIL_FROM_NAME') ?: 'Crop Insurance System';
+        $headers  = implode("\r\n", [
+            "MIME-Version: 1.0",
+            "Content-Type: text/html; charset=UTF-8",
+            "From: $fromName <$from>",
+            "Reply-To: $from",
+        ]);
+        return mail($to, $subject, $htmlBody, $headers);
+    }
 
-    $headers  = implode("\r\n", [
-        "MIME-Version: 1.0",
-        "Content-Type: text/html; charset=UTF-8",
-        "From: $fromName <$from>",
-        "Reply-To: $from",
-        "X-Mailer: PHP/" . phpversion(),
-    ]);
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = getenv('MAIL_HOST')     ?: 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = getenv('MAIL_USERNAME') ?: '';
+        $mail->Password   = getenv('MAIL_PASSWORD') ?: '';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = (int)(getenv('MAIL_PORT') ?: 587);
 
-    return mail($to, $subject, $htmlBody, $headers);
+        $fromAddr = getenv('MAIL_FROM')      ?: getenv('MAIL_USERNAME') ?: 'noreply@cropinsurance.ph';
+        $fromName = getenv('MAIL_FROM_NAME') ?: 'Crop Insurance System';
+        $mail->setFrom($fromAddr, $fromName);
+        $mail->addAddress($to);
+
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = $subject;
+        $mail->Body    = $htmlBody;
+        $mail->AltBody = strip_tags($htmlBody);
+
+        $mail->send();
+        return true;
+    } catch (PHPMailerException $e) {
+        error_log('Mailer error: ' . $mail->ErrorInfo);
+        return false;
+    }
 }
 
 /**
- * Wrap content in a simple email HTML template
+ * Wrap content in the standard email HTML template.
  */
 function emailTemplate(string $title, string $body): string {
     return <<<HTML
@@ -48,7 +79,7 @@ function emailTemplate(string $title, string $body): string {
 }
 
 /**
- * Send password reset email
+ * Send password reset email.
  */
 function sendPasswordResetEmail(string $to, string $name, string $token): bool {
     $resetUrl = APP_URL . '/views/user/forgot-password.php?token=' . urlencode($token);
@@ -68,7 +99,7 @@ function sendPasswordResetEmail(string $to, string $name, string $token): bool {
 }
 
 /**
- * Send welcome/registration email
+ * Send welcome/registration email.
  */
 function sendWelcomeEmail(string $to, string $name): bool {
     $body = emailTemplate('Welcome to Crop Insurance System', "

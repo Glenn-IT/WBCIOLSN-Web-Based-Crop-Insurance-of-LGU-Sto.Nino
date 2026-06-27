@@ -4,6 +4,11 @@
 // Web-Based Crop Insurance System
 // ============================================================
 
+// Composer autoload (PHPMailer, etc.)
+if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
+
 // Load .env
 require_once __DIR__ . '/config/env.php';
 loadEnv(dirname(__DIR__) . '/.env');
