@@ -35,7 +35,7 @@ require_once '../../includes/head.php';
           <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:24px">
             We've sent a password reset link to your email address. Please check your inbox.
           </p>
-          <button class="btn-primary-auth" onclick="navigateTo('../../index.php')">
+          <button class="btn-primary-auth" onclick="logout()">
             Back to Login
           </button>
         </div>
@@ -88,13 +88,13 @@ require_once '../../includes/head.php';
           <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:24px">
             Your password has been updated. You can now sign in with your new password.
           </p>
-          <button class="btn-primary-auth" onclick="navigateTo('../../index.php')">
+          <button class="btn-primary-auth" onclick="logout()">
             Go to Login →
           </button>
         </div>
 
         <div style="text-align:center;margin-top:20px">
-          <a class="auth-link" onclick="navigateTo('../../index.php')">← Back to Login</a>
+          <a class="auth-link" onclick="logout()">← Back to Login</a>
         </div>
       </div>
     </div>
