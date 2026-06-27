@@ -6,7 +6,7 @@ Copy and paste this prompt to use the same version control system on any VB.NET 
 
 ## The Prompt
 
-```
+````
 I want to set up a week-by-week versioned presentation system for this project using Git and GitHub.
 This is a VB.NET Windows Forms project in Visual Studio 2022.
 
@@ -53,8 +53,9 @@ After I approve the plan, do the following:
    gate.ShowDialog()
    Me.Close()
    Return
-   ```
-   This shows the Under Construction form, waits for it to close, then closes the gated form.
+````
+
+This shows the Under Construction form, waits for it to close, then closes the gated form.
 
 3. Forms that are part of the current version (v1.00) should NOT have the gate.
 
@@ -82,7 +83,8 @@ After I approve the plan, do the following:
    Remove this data gate when the relevant version is reached.
 
 Present the plan first and wait for my approval before making any changes.
-```
+
+````
 
 ---
 
@@ -120,9 +122,10 @@ Private Sub FormDashboard_Load(sender As Object, e As EventArgs) Handles MyBase.
 
     ' ... real form code below ...
 End Sub
-```
+````
 
 To **unlock** a form for a version:
+
 1. Delete the 4 gate lines from its `Form_Load`
 2. Update `CURRENT_VERSION` in `UnderConstructionForm.vb`
 3. Commit, tag, and push
