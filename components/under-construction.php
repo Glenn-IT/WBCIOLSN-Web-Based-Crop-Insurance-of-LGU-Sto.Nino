@@ -62,6 +62,8 @@ define('CURRENT_VERSION', 'v1.13');
       border-radius: 10px;
       font-size: 15px;
       font-weight: 600;
+      border: none;
+      cursor: pointer;
       transition: opacity 0.2s;
     }
     .btn:hover { opacity: 0.88; }
@@ -74,8 +76,9 @@ define('CURRENT_VERSION', 'v1.13');
     <h1>Under Construction</h1>
     <p>This feature is not yet available in the current presentation version.
        It will be unlocked in a future release.</p>
-    <a href="javascript:history.back()" class="btn">← Go Back</a>
+    <button class="btn" onclick="logout()">← Back to Login</button>
   </div>
+  <script src="/web-based-crop-insurance/assets/js/app.js"></script>
 </body>
 </html>
 <?php exit; ?>
