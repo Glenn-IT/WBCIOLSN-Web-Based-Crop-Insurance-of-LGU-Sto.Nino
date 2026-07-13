@@ -125,7 +125,7 @@ git push origin --tags  # push all tags at once
 
 | Version | Tag Name | Commit Hash |
 |---------|----------|-------------|
-| v1.00   | v1.00    | 2948979b165ef415d2ec010a0c0876dfb05a3274 |
+| v1.00   | v1.00    | 9a397362f6f5e875b4316cc1ed7a0808b7d5650c |
 | v1.01   | v1.01    | 8cdd0507e678308e5b0fdd5acfb7c8c83159b801 |
 | v1.02   | v1.02    | bb013a3b029b2e68d67480eb28bb730674071fb9 |
 | v1.03   | v1.03    | 5e2211452553a2e8f25e492ff05f9223b585cdec |
