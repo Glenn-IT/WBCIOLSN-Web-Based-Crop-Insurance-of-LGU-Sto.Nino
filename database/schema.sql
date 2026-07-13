@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified  TINYINT(1) DEFAULT 0,
     reset_token     VARCHAR(255) DEFAULT NULL,
     reset_expires   DATETIME DEFAULT NULL,
+    failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    locked_until    DATETIME DEFAULT NULL,
+    security_question    VARCHAR(255) DEFAULT NULL,
+    security_answer_hash VARCHAR(255) DEFAULT NULL,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

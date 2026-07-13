@@ -10,10 +10,13 @@ class UserModel extends BaseModel {
     protected string $table = 'users';
 
     /**
-     * Find user by email
+     * Find user by email (case-sensitive exact match)
      */
     public function findByEmail(string $email): ?array {
-        return $this->findBy('email', $email);
+        return $this->rawOne(
+            "SELECT * FROM `{$this->table}` WHERE BINARY email = ? LIMIT 1",
+            [$email]
+        );
     }
 
     /**
@@ -35,7 +38,7 @@ class UserModel extends BaseModel {
      * Get user safe for public response (no password, no reset tokens)
      */
     public function sanitize(array $user): array {
-        unset($user['password'], $user['reset_token'], $user['reset_expires']);
+        unset($user['password'], $user['reset_token'], $user['reset_expires'], $user['security_answer_hash']);
         return $user;
     }
 
@@ -79,9 +82,63 @@ class UserModel extends BaseModel {
     }
 
     /**
-     * Check if email already exists
+     * Check if email already exists (case-sensitive exact match)
      */
     public function emailExists(string $email): bool {
-        return $this->count('email = ?', [$email]) > 0;
+        return $this->count('BINARY email = ?', [$email]) > 0;
+    }
+
+    /**
+     * Register a failed login attempt for the given user. Locks the account for
+     * $lockSeconds once $maxAttempts consecutive failures are reached.
+     * Returns ['locked' => bool, 'attempts_left' => int, 'locked_seconds' => int]
+     */
+    public function registerFailedAttempt(array $user, int $maxAttempts = 3, int $lockSeconds = 30): array {
+        $attempts = (int) $user['failed_attempts'] + 1;
+
+        if ($attempts >= $maxAttempts) {
+            $this->update($user['id'], [
+                'failed_attempts' => 0,
+                'locked_until'    => date('Y-m-d H:i:s', strtotime("+{$lockSeconds} seconds")),
+            ]);
+            return ['locked' => true, 'attempts_left' => 0, 'locked_seconds' => $lockSeconds];
+        }
+
+        $this->update($user['id'], ['failed_attempts' => $attempts]);
+        return ['locked' => false, 'attempts_left' => $maxAttempts - $attempts, 'locked_seconds' => 0];
+    }
+
+    /**
+     * Reset failed-attempt counter and lock on successful login
+     */
+    public function clearFailedAttempts(int $userId): bool {
+        return $this->update($userId, ['failed_attempts' => 0, 'locked_until' => null]);
+    }
+
+    /**
+     * Seconds remaining on an active lockout (0 if not locked)
+     */
+    public function lockedSecondsRemaining(array $user): int {
+        if (empty($user['locked_until'])) return 0;
+        $remaining = strtotime($user['locked_until']) - time();
+        return $remaining > 0 ? $remaining : 0;
+    }
+
+    /**
+     * Set the security question and hashed answer for a user
+     */
+    public function setSecurityQuestion(int $userId, string $question, string $answer): bool {
+        return $this->update($userId, [
+            'security_question'    => $question,
+            'security_answer_hash' => password_hash(strtolower(trim($answer)), PASSWORD_BCRYPT, ['cost' => 12]),
+        ]);
+    }
+
+    /**
+     * Verify a security answer against the stored hash
+     */
+    public function verifySecurityAnswer(array $user, string $answer): bool {
+        if (empty($user['security_answer_hash'])) return false;
+        return password_verify(strtolower(trim($answer)), $user['security_answer_hash']);
     }
 }

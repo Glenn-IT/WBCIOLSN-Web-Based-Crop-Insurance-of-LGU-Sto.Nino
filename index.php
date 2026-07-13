@@ -118,6 +118,23 @@ require_once 'includes/head.php';
       }
     })();
 
+    function lockLoginButton(btn, seconds) {
+      const original = 'Sign In →';
+      let remaining = seconds;
+      btn.disabled = true;
+      btn.textContent = `Locked (${remaining}s)`;
+      const timer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.textContent = original;
+        } else {
+          btn.textContent = `Locked (${remaining}s)`;
+        }
+      }, 1000);
+    }
+
     async function handleLogin(e) {
       e.preventDefault();
       const email    = document.getElementById('login-email').value.trim();
@@ -142,7 +159,12 @@ require_once 'includes/head.php';
           }, 1000);
         } else {
           showToast('Login Failed', res.message || 'Invalid email or password.', 'error');
-          btn.disabled = false;
+          const lockedSeconds = res.errors?.locked_seconds;
+          if (lockedSeconds) {
+            lockLoginButton(btn, lockedSeconds);
+          } else {
+            btn.disabled = false;
+          }
         }
       } catch (err) {
         hideLoading();

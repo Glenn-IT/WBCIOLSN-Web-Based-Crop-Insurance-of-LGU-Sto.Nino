@@ -170,6 +170,41 @@ $initials  = strtoupper(
               </button>
             </div>
           </div>
+
+          <!-- Security Question -->
+          <div class="card" style="margin-top:20px">
+            <div class="card-header"><h5>🛡️ Security Question</h5></div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+                Used to verify your identity if you forget your password.
+                <span id="security-question-status"></span>
+              </p>
+              <div class="form-group">
+                <label class="form-label">Security Question</label>
+                <select id="edit-security-question" class="form-select">
+                  <option value="">Select a question</option>
+                  <option>What is your mother's maiden name?</option>
+                  <option>What was the name of your first pet?</option>
+                  <option>What is the name of the barangay you grew up in?</option>
+                  <option>What was your childhood nickname?</option>
+                  <option>What is the name of your favorite crop to plant?</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Answer</label>
+                <input type="text" id="edit-security-answer" class="form-control"
+                  placeholder="Enter a new answer" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="security-question-current-pass" class="form-control"
+                  placeholder="Confirm with your current password" />
+              </div>
+              <button class="btn btn-outline w-100" onclick="saveSecurityQuestion()">
+                💾 Save Security Question
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -207,6 +242,16 @@ $initials  = strtoupper(
       setText('profile-full-name', fullName);
       const avatarEl = document.getElementById('profile-avatar');
       if (avatarEl) avatarEl.textContent = initials;
+
+      const qSelect = document.getElementById('edit-security-question');
+      const qStatus = document.getElementById('security-question-status');
+      if (u.security_question) {
+        if (qSelect) qSelect.value = u.security_question;
+        if (qStatus) qStatus.textContent = ' A security question is currently set.';
+      } else if (qStatus) {
+        qStatus.textContent = ' No security question set yet — please add one.';
+        qStatus.style.color = '#dc3545';
+      }
     }
 
     async function loadProfile() {
@@ -283,6 +328,42 @@ $initials  = strtoupper(
         hideLoading();
         console.error(err);
         showToast('Error', 'Error changing password.', 'error');
+      }
+    }
+
+    async function saveSecurityQuestion() {
+      const question = document.getElementById('edit-security-question')?.value || '';
+      const answer   = document.getElementById('edit-security-answer')?.value?.trim() || '';
+      const current  = document.getElementById('security-question-current-pass')?.value || '';
+
+      if (!question || !answer) {
+        showToast('Validation', 'Please select a question and provide an answer.', 'error'); return;
+      }
+      if (!current) {
+        showToast('Validation', 'Please confirm your current password.', 'error'); return;
+      }
+
+      showLoading();
+      try {
+        const res = await api('POST', '/auth/security-question', {
+          current_password:  current,
+          security_question: question,
+          security_answer:   answer,
+        });
+        hideLoading();
+        if (res.success) {
+          showToast('Success', 'Security question saved successfully.', 'success');
+          document.getElementById('edit-security-answer').value = '';
+          document.getElementById('security-question-current-pass').value = '';
+          const fresh = await api('GET', '/auth/me');
+          if (fresh.success) populateProfile(fresh.data);
+        } else {
+          showToast('Error', res.message || 'Failed to save security question.', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        showToast('Error', 'Error saving security question.', 'error');
       }
     }
 

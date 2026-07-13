@@ -114,6 +114,28 @@ require_once '../../includes/head.php';
             </div>
           </div>
 
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Security Question</label>
+              <select id="security-question" class="form-select" required>
+                <option value="">Select a question</option>
+                <option>What is your mother's maiden name?</option>
+                <option>What was the name of your first pet?</option>
+                <option>What is the name of the barangay you grew up in?</option>
+                <option>What was your childhood nickname?</option>
+                <option>What is the name of your favorite crop to plant?</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Security Answer</label>
+              <input type="text" id="security-answer" class="form-control"
+                placeholder="Your answer" required />
+            </div>
+          </div>
+          <small style="display:block;margin:-10px 0 16px;color:var(--text-muted,#666);font-size:12px">
+            Used to verify your identity if you forget your password.
+          </small>
+
           <div class="form-group">
             <label class="form-check">
               <input type="checkbox" id="terms" required />
@@ -214,6 +236,13 @@ require_once '../../includes/head.php';
         return;
       }
 
+      const securityQuestion = document.getElementById('security-question').value;
+      const securityAnswer   = document.getElementById('security-answer').value.trim();
+      if (!securityQuestion || !securityAnswer) {
+        showToast('Error', 'Please select a security question and provide an answer.', 'error');
+        return;
+      }
+
       const btn = e.target.querySelector('button[type=submit]');
       btn.disabled = true;
       showLoading();
@@ -226,6 +255,8 @@ require_once '../../includes/head.php';
           password,
           phone:      document.getElementById('phone').value.trim(),
           address:    document.getElementById('address').value.trim(),
+          security_question: securityQuestion,
+          security_answer:   securityAnswer,
         }, false);
 
         hideLoading();
