@@ -51,6 +51,7 @@ $router->post('/auth/logout',          [AuthController::class, 'logout']);
 $router->post('/auth/forgot-password',   [AuthController::class, 'forgotPassword']);
 $router->post('/auth/reset-password',    [AuthController::class, 'resetPassword']);
 $router->post('/auth/change-password',   [AuthController::class, 'changePassword']);
+$router->post('/auth/security-question', [AuthController::class, 'setSecurityQuestion']);
 $router->get('/auth/me',                 [AuthController::class, 'me']);
 
 // ---- User routes (Phase 4) ----

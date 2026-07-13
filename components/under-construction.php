@@ -1,5 +1,9 @@
 <?php
 define('CURRENT_VERSION', 'v1.00');
+
+// Prevent the browser from caching this page (blocks bfcache restoration after logout)
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 ?>
 <!doctype html>
 <html lang="en">
@@ -79,6 +83,14 @@ define('CURRENT_VERSION', 'v1.00');
     <button class="btn" onclick="logout()">← Back to Login</button>
   </div>
   <script src="/web-based-crop-insurance/assets/js/app.js"></script>
+  <script>
+    // Defense-in-depth: if Chrome restores this page from bfcache via the
+    // Back button after logout, force it to reload so the session check
+    // (and no-store header above) apply again instead of showing stale HTML.
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) window.location.reload();
+    });
+  </script>
 </body>
 </html>
 <?php exit; ?>

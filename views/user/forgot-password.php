@@ -10,10 +10,10 @@ require_once '../../includes/head.php';
         <div style="text-align:center;margin-bottom:28px">
           <div style="font-size:52px;margin-bottom:12px">🔑</div>
           <h2 id="page-title" style="margin-bottom:6px">Forgot Password?</h2>
-          <p id="page-subtitle" class="auth-subtitle">Enter your email to reset your password</p>
+          <p id="page-subtitle" class="auth-subtitle">Enter your email to continue</p>
         </div>
 
-        <!-- Step 1: Request reset link -->
+        <!-- Step 1: Enter email -->
         <div id="step1">
           <div class="form-group">
             <label class="form-label">Email Address</label>
@@ -23,26 +23,28 @@ require_once '../../includes/head.php';
                 placeholder="your@email.com" />
             </div>
           </div>
-          <button class="btn-primary-auth" onclick="sendReset()">
-            Send Reset Link →
+          <button class="btn-primary-auth" onclick="findAccount()">
+            Continue →
           </button>
         </div>
 
-        <!-- Step 2: Email sent confirmation -->
-        <div id="step2" style="display:none;text-align:center">
-          <div style="font-size:48px;margin-bottom:16px">📬</div>
-          <h3 style="margin-bottom:8px;color:var(--primary)">Email Sent!</h3>
-          <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:24px">
-            We've sent a password reset link to your email address. Please check your inbox.
-          </p>
-          <button class="btn-primary-auth" onclick="logout()">
-            Back to Login
+        <!-- Step 2: Answer security question -->
+        <div id="step2" style="display:none">
+          <div class="form-group">
+            <label class="form-label" id="security-question-label">Security Question</label>
+            <div class="input-group">
+              <span class="input-icon">❓</span>
+              <input type="text" id="security-answer" class="form-control"
+                placeholder="Your answer" />
+            </div>
+          </div>
+          <button class="btn-primary-auth" onclick="verifyAndShowResetForm()">
+            Verify Answer →
           </button>
         </div>
 
-        <!-- Step 3: Set new password (token from URL ?token=...) -->
+        <!-- Step 3: Set new password -->
         <div id="step3" style="display:none">
-          <input type="hidden" id="reset-token" />
           <div class="form-group">
             <label class="form-label">New Password</label>
             <div class="input-group">
@@ -102,37 +104,42 @@ require_once '../../includes/head.php';
 
   <?php require_once '../../includes/toast.php'; ?>
   <script>
-    // On load: check for ?token= in URL to show reset form directly
-    (function () {
-      const params = new URLSearchParams(window.location.search);
-      const token  = params.get('token');
-      if (token) {
-        document.getElementById('reset-token').value = token;
-        document.getElementById('step1').style.display = 'none';
-        document.getElementById('step3').style.display = 'block';
-        document.getElementById('page-title').textContent    = 'Set New Password';
-        document.getElementById('page-subtitle').textContent = 'Enter and confirm your new password below.';
-      }
-    })();
+    let resetEmail = '';
 
-    async function sendReset() {
+    async function findAccount() {
       const email = document.getElementById('reset-email').value.trim();
       if (!email) { showToast('Error', 'Please enter your email.', 'error'); return; }
       showLoading();
       try {
-        await api('POST', '/auth/forgot-password', { email }, false);
+        const res = await api('POST', '/auth/forgot-password', { email }, false);
         hideLoading();
-        showToast('Email Sent', 'If that email is registered, a reset link has been sent.', 'success');
-        document.getElementById('step1').style.display = 'none';
-        document.getElementById('step2').style.display = 'block';
+        if (res.success) {
+          resetEmail = email;
+          document.getElementById('security-question-label').textContent = res.data.security_question;
+          document.getElementById('step1').style.display = 'none';
+          document.getElementById('step2').style.display = 'block';
+          document.getElementById('page-subtitle').textContent = 'Answer your security question to continue.';
+        } else {
+          showToast('Not Found', res.message || 'No account found with that email.', 'error');
+        }
       } catch (err) {
         hideLoading();
         showToast('Error', 'Could not reach the server.', 'error');
       }
     }
 
+    function verifyAndShowResetForm() {
+      const answer = document.getElementById('security-answer').value.trim();
+      if (!answer) { showToast('Error', 'Please answer the security question.', 'error'); return; }
+      // Actual verification happens server-side together with the password reset.
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'block';
+      document.getElementById('page-title').textContent    = 'Set New Password';
+      document.getElementById('page-subtitle').textContent = 'Enter and confirm your new password below.';
+    }
+
     async function doReset() {
-      const token   = document.getElementById('reset-token').value;
+      const answer  = document.getElementById('security-answer').value.trim();
       const newPass = document.getElementById('new-password').value;
       const confirm = document.getElementById('confirm-password').value;
       if (!newPass || !confirm) { showToast('Error', 'Please fill in both password fields.', 'error'); return; }
@@ -140,7 +147,8 @@ require_once '../../includes/head.php';
       if (newPass.length < 8)   { showToast('Error', 'Password must be at least 8 characters.', 'error'); return; }
       showLoading();
       try {
-        const res = await api('POST', '/auth/reset-password', { token, password: newPass }, false);
+        const res = await api('POST', '/auth/reset-password',
+          { email: resetEmail, answer, password: newPass }, false);
         hideLoading();
         if (res.success) {
           document.getElementById('step3').style.display = 'none';
@@ -148,7 +156,11 @@ require_once '../../includes/head.php';
           document.getElementById('page-title').textContent    = 'Success!';
           document.getElementById('page-subtitle').textContent = '';
         } else {
-          showToast('Error', res.message || 'Invalid or expired reset link.', 'error');
+          showToast('Error', res.message || 'Incorrect answer to the security question.', 'error');
+          // Send back to the security-question step so they can retry.
+          document.getElementById('step3').style.display = 'none';
+          document.getElementById('step2').style.display = 'block';
+          document.getElementById('page-title').textContent    = 'Forgot Password?';
         }
       } catch (err) {
         hideLoading();

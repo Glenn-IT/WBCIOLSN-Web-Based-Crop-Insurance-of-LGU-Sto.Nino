@@ -71,6 +71,23 @@ require_once '../../includes/head.php';
 
   <?php require_once '../../includes/toast.php'; ?>
   <script>
+    function lockLoginButton(btn, seconds) {
+      const original = 'Sign In as Admin →';
+      let remaining = seconds;
+      btn.disabled = true;
+      btn.textContent = `Locked (${remaining}s)`;
+      const timer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.textContent = original;
+        } else {
+          btn.textContent = `Locked (${remaining}s)`;
+        }
+      }, 1000);
+    }
+
     async function handleAdminLogin(e) {
       e.preventDefault();
       const email    = document.getElementById('admin-email').value.trim();
@@ -94,7 +111,12 @@ require_once '../../includes/head.php';
           setTimeout(() => window.location.href = 'dashboard.php', 1000);
         } else {
           showToast('Login Failed', res.message || 'Invalid credentials.', 'error');
-          btn.disabled = false;
+          const lockedSeconds = res.errors?.locked_seconds;
+          if (lockedSeconds) {
+            lockLoginButton(btn, lockedSeconds);
+          } else {
+            btn.disabled = false;
+          }
         }
       } catch (err) {
         hideLoading();
