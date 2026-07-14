@@ -149,7 +149,9 @@ $initials  = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)) ?: '
               <div class="form-group">
                 <label class="form-label">Contact Number</label>
                 <input id="edit-phone" type="text" class="form-control"
-                  placeholder="09XXXXXXXXX" value="<?= $phone ?>" />
+                  placeholder="09XXXXXXXXX" value="<?= $phone ?>"
+                  inputmode="numeric" maxlength="11"
+                  oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)" />
               </div>
               <div style="margin-top:4px">
                 <button class="btn btn-primary" onclick="saveProfile()">💾 Save Changes</button>
@@ -200,25 +202,6 @@ $initials  = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)) ?: '
                   style="height:100%;width:0;border-radius:4px;transition:width 0.3s,background 0.3s"></div>
               </div>
               <button class="btn btn-primary" onclick="changePassword()">🔑 Update Password</button>
-            </div>
-          </div>
-
-          <!-- Security Info -->
-          <div class="card">
-            <div class="card-header"><h5>🛡️ Security Information</h5></div>
-            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;font-size:13.5px">
-              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
-                background:#e8f5e9;border-radius:8px;border:1px solid #a5d6a7">
-                <span>✅</span><span>Two-factor authentication is <strong>enabled</strong> (Prototype Display)</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
-                background:#e3f2fd;border-radius:8px;border:1px solid #90caf9">
-                <span>ℹ️</span><span>Account is protected by LGU Sto. Niño system policies</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
-                background:#fff3cd;border-radius:8px;border:1px solid #ffc107">
-                <span>⚠️</span><span>Password should be changed every <strong>90 days</strong></span>
-              </div>
             </div>
           </div>
 
@@ -276,6 +259,10 @@ $initials  = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)) ?: '
       const data = { first_name: get('edit-fname'), last_name: get('edit-lname'), phone: get('edit-phone') };
       if (!data.first_name || !data.last_name) {
         showToast('Required', 'First name and last name are required.', 'error');
+        return;
+      }
+      if (data.phone && !/^\d{11}$/.test(data.phone)) {
+        showToast('Invalid', 'Contact number must be exactly 11 digits.', 'error');
         return;
       }
       showLoading();

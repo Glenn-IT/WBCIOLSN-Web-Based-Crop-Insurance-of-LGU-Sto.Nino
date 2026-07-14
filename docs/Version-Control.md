@@ -18,6 +18,7 @@
 | v1.11   | User   | Application Status             | v1.12–v1.13 |
 | v1.12   | User   | File a Claim                   | v1.13 |
 | v1.13   | User   | Farmer Profile *(Full System)* | — |
+| v2.00   | Admin  | Admin Dashboard, Admin Profile (re-gated snapshot) | All other pages |
 
 ---
 
@@ -67,6 +68,24 @@
 
 ### v1.13 — Unlock Farmer Profile (Full System)
 - Remove gate from `views/user/profile.php`
+
+### v2.00 — New rollout: re-gate everything except v1.00 + Admin Dashboard + Admin Profile
+Built on top of `main` (which includes fixes/features added after v1.13, e.g. security questions,
+under-construction caching fix). Re-adds the under-construction gate to every page that isn't
+part of v1.00 or the two carried-over admin pages:
+- Re-gate `views/admin/view-applications.php`
+- Re-gate `views/admin/manage-applications.php`
+- Re-gate `views/admin/claim-verification.php`
+- Re-gate `views/admin/reports.php`
+- Re-gate `views/admin/user-management.php`
+- Re-gate `views/user/dashboard.php`
+- Re-gate `views/user/new-application.php`
+- Re-gate `views/user/my-applications.php`
+- Re-gate `views/user/application-status.php`
+- Re-gate `views/user/file-claim.php`
+- Re-gate `views/user/profile.php`
+- Stay unlocked: `views/admin/dashboard.php`, `views/admin/admin-profile.php`
+- Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
 
 ---
 
