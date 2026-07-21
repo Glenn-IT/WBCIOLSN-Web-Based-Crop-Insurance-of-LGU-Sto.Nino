@@ -68,11 +68,15 @@ class UserController extends BaseController {
             'last_name'  => 'required|max:100',
             'email'      => 'required|email|max:191',
             'password'   => 'required|min:6',
-            'role'       => 'required|in:farmer,agent',
         ]);
 
         if ($this->users->emailExists($data['email'])) {
             sendError('Email address is already in use.', 409);
+        }
+
+        $phone = sanitize($data['phone'] ?? '');
+        if ($phone !== '' && !preg_match('/^09\d{9}$/', $phone)) {
+            sendError('Phone number must be 11 digits in PH format (e.g. 09XXXXXXXXX).', 422);
         }
 
         $userId = $this->users->createUser([
@@ -80,8 +84,8 @@ class UserController extends BaseController {
             'last_name'  => sanitize($data['last_name']),
             'email'      => strtolower(trim($data['email'])),
             'password'   => $data['password'],
-            'phone'      => sanitize($data['phone'] ?? ''),
-            'role'       => $data['role'],
+            'phone'      => $phone,
+            'role'       => 'farmer',
             'status'     => $data['status'] ?? 'active',
         ]);
 
@@ -118,6 +122,10 @@ class UserController extends BaseController {
             'last_name'  => 'required|max:100',
             'phone'      => 'max:20',
         ]);
+
+        if (!empty($data['phone']) && !preg_match('/^09\d{9}$/', $data['phone'])) {
+            sendError('Phone number must be 11 digits in PH format (e.g. 09XXXXXXXXX).', 422);
+        }
 
         $updateData = [
             'first_name'  => sanitize($data['first_name']),
