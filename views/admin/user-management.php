@@ -139,7 +139,9 @@ require_once '../../includes/head.php';
           </div>
           <div class="form-group">
             <label class="form-label">Phone Number</label>
-            <input type="text" id="field-phone" class="form-control" placeholder="e.g. 09XXXXXXXXX" />
+            <input type="text" id="field-phone" class="form-control" placeholder="e.g. 09XXXXXXXXX"
+              inputmode="numeric" maxlength="11"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)" />
           </div>
         </div>
         <div class="form-row form-row-2">
@@ -149,6 +151,7 @@ require_once '../../includes/head.php';
               <option value="farmer">🌾 Farmer</option>
               <option value="agent">🧑‍💼 Agent</option>
             </select>
+            <small id="role-lock-hint" style="color:var(--text-muted);font-size:12px;display:none">New users are always created as Farmer.</small>
           </div>
           <div class="form-group">
             <label class="form-label">Status</label>
@@ -305,6 +308,8 @@ require_once '../../includes/head.php';
       document.getElementById('field-email').value          = '';
       document.getElementById('field-phone').value          = '';
       document.getElementById('field-role').value           = 'farmer';
+      document.getElementById('field-role').disabled         = true;
+      document.getElementById('role-lock-hint').style.display = 'block';
       document.getElementById('field-status').value         = 'active';
       document.getElementById('field-password').value       = '';
       document.getElementById('field-confirm-password').value = '';
@@ -324,6 +329,8 @@ require_once '../../includes/head.php';
       document.getElementById('field-email').value          = user.email  || '';
       document.getElementById('field-phone').value          = user.phone  || '';
       document.getElementById('field-role').value           = user.role   || 'farmer';
+      document.getElementById('field-role').disabled         = false;
+      document.getElementById('role-lock-hint').style.display = 'none';
       document.getElementById('field-status').value         = user.status || 'active';
       document.getElementById('field-password').value       = '';
       document.getElementById('field-confirm-password').value = '';
@@ -368,6 +375,9 @@ require_once '../../includes/head.php';
       }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showToast('Validation', 'A valid email address is required.', 'error'); return;
+      }
+      if (phone && !/^09\d{9}$/.test(phone)) {
+        showToast('Validation', 'Phone number must be 11 digits in PH format (e.g. 09XXXXXXXXX).', 'error'); return;
       }
       if (!isEditMode && !password) {
         showToast('Validation', 'Password is required when creating a user.', 'error'); return;
