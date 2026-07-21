@@ -183,6 +183,9 @@ git push origin --tags  # push all tags at once
 | v1.11   | v1.11    | fc99fbf8f5a0c1b3b8f9f385e3ec960549301a9f |
 | v1.12   | v1.12    | b64c5ab29642f102d749aef26670ab0ac03b2071 |
 | v1.13   | v1.13    | e63714d94852abde6a3ab1ea7d0b168d5a9f33f3 |
+| v2.00   | v2.00    | 43293b18e09cbd100db0c227549ba4423e705b17 |
+| v3.00   | v3.00    | 84beae93a22b87dc96550d2a5e71c4935e0d12bd |
+| v3.10   | v3.10    | 6d45ffb5a067dcb9cb59d0c868ae0d1308e8ed58 |
 
 Fill commit hashes after all versions are tagged using:
 
