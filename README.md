@@ -163,7 +163,7 @@ web-based-crop-insurance/
 6. **Start XAMPP** (Apache + MySQL), then open:
    ```
    http://localhost/web-based-crop-insurance
-   ```
+   ```s
 
 ---
 
