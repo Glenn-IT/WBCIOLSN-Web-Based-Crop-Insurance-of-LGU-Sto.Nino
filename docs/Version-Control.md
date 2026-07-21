@@ -20,6 +20,7 @@
 | v1.13   | User   | Farmer Profile *(Full System)* | — |
 | v2.00   | Admin  | Admin Dashboard, Admin Profile (re-gated snapshot) | All other pages |
 | v3.00   | Admin + User | User Management, Farmer Dashboard (added to v2.00 baseline) | All other pages |
+| v3.10   | Admin + User | All remaining pages unlocked *(Full System)* | — |
 
 ---
 
@@ -95,6 +96,21 @@ Built on top of the v2.00 snapshot. Adds two more unlocked pages, everything els
 - Stay unlocked (carried over): `views/admin/dashboard.php`, `views/admin/admin-profile.php`
 - Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
 - Stay gated: `views/admin/view-applications.php`, `views/admin/manage-applications.php`, `views/admin/claim-verification.php`, `views/admin/reports.php`, `views/user/new-application.php`, `views/user/my-applications.php`, `views/user/application-status.php`, `views/user/file-claim.php`, `views/user/profile.php`
+
+### v3.10 — Unlock all remaining pages (Full System)
+Built on top of the v3.00 snapshot. Removes the under-construction gate from every
+remaining page, so the entire system is fully accessible:
+- Remove gate from `views/admin/view-applications.php`
+- Remove gate from `views/admin/manage-applications.php`
+- Remove gate from `views/admin/claim-verification.php`
+- Remove gate from `views/admin/reports.php`
+- Remove gate from `views/user/new-application.php`
+- Remove gate from `views/user/my-applications.php`
+- Remove gate from `views/user/application-status.php`
+- Remove gate from `views/user/file-claim.php`
+- Remove gate from `views/user/profile.php`
+- Stay unlocked (carried over): `views/admin/dashboard.php`, `views/admin/admin-profile.php`, `views/admin/user-management.php`, `views/user/dashboard.php`
+- Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
 
 ---
 
