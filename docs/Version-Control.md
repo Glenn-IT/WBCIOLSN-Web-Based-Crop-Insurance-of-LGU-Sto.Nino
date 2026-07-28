@@ -122,6 +122,12 @@ more unlocked pages, everything else stays/goes gated again:
 - Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
 - Re-gate (rolled back from v3.10): `views/admin/manage-applications.php`, `views/admin/claim-verification.php`, `views/admin/reports.php`, `views/user/my-applications.php`, `views/user/application-status.php`, `views/user/file-claim.php`, `views/user/profile.php`
 
+**Cherry-picked fix (per the [Cherry-Pick Guide](Cheryy-Pick-Guide.md)):** `feat: implement pending
+user approval status for farmer registrations` was first committed on `main`, then backported onto
+the `v4.00` snapshot via `git checkout -b temp-fix-v4.00 v4.00` + `git cherry-pick`, so checking out
+`v4.00` also requires admin approval before a newly self-registered farmer can log in — without
+pulling in any other later `main` changes into the tag.
+
 ---
 
 ## Under Construction Strategy
@@ -196,7 +202,7 @@ git push origin --tags  # push all tags at once
 | v2.00   | v2.00    | 43293b18e09cbd100db0c227549ba4423e705b17 |
 | v3.00   | v3.00    | 84beae93a22b87dc96550d2a5e71c4935e0d12bd |
 | v3.10   | v3.10    | 6d45ffb5a067dcb9cb59d0c868ae0d1308e8ed58 |
-| v4.00   | v4.00    | 2eaec727c7fb6866efe2d3481644bf60f1fc136b |
+| v4.00   | v4.00    | caf2920d9692fd7ebb37ac95da23de724ff7b1cb |
 
 Fill commit hashes after all versions are tagged using:
 
