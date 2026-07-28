@@ -1,3 +1,4 @@
+<?php require_once '../../components/under-construction.php'; ?>
 <?php
 $pageTitle   = 'File a Claim — Crop Insurance';
 $basePath    = '../../';

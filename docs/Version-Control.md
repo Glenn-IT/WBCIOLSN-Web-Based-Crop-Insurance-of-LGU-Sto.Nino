@@ -21,6 +21,7 @@
 | v2.00   | Admin  | Admin Dashboard, Admin Profile (re-gated snapshot) | All other pages |
 | v3.00   | Admin + User | User Management, Farmer Dashboard (added to v2.00 baseline) | All other pages |
 | v3.10   | Admin + User | All remaining pages unlocked *(Full System)* | — |
+| v4.00   | Admin + User | View Applications, New Application (added to v3.00 baseline) | All other pages |
 
 ---
 
@@ -112,6 +113,15 @@ remaining page, so the entire system is fully accessible:
 - Stay unlocked (carried over): `views/admin/dashboard.php`, `views/admin/admin-profile.php`, `views/admin/user-management.php`, `views/user/dashboard.php`
 - Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
 
+### v4.00 — Unlock View Applications + New Application
+Built on top of the v3.00 snapshot (not v3.10 — the full-system unlock is rolled back). Adds two
+more unlocked pages, everything else stays/goes gated again:
+- Remove gate from `views/admin/view-applications.php`
+- Remove gate from `views/user/new-application.php`
+- Stay unlocked (carried over): `views/admin/dashboard.php`, `views/admin/admin-profile.php`, `views/admin/user-management.php`, `views/user/dashboard.php`
+- Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
+- Re-gate (rolled back from v3.10): `views/admin/manage-applications.php`, `views/admin/claim-verification.php`, `views/admin/reports.php`, `views/user/my-applications.php`, `views/user/application-status.php`, `views/user/file-claim.php`, `views/user/profile.php`
+
 ---
 
 ## Under Construction Strategy
@@ -186,6 +196,7 @@ git push origin --tags  # push all tags at once
 | v2.00   | v2.00    | 43293b18e09cbd100db0c227549ba4423e705b17 |
 | v3.00   | v3.00    | 84beae93a22b87dc96550d2a5e71c4935e0d12bd |
 | v3.10   | v3.10    | 6d45ffb5a067dcb9cb59d0c868ae0d1308e8ed58 |
+| v4.00   | v4.00    | _pending — fill after tagging_ |
 
 Fill commit hashes after all versions are tagged using:
 

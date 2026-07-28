@@ -1,5 +1,5 @@
 <?php
-define('CURRENT_VERSION', 'v3.10');
+define('CURRENT_VERSION', 'v4.00');
 
 // Prevent the browser from caching this page (blocks bfcache restoration after logout)
 header('Cache-Control: no-store, no-cache, must-revalidate');
