@@ -261,9 +261,8 @@ require_once '../../includes/head.php';
 
         hideLoading();
         if (res.success) {
-          setSession(res.data.user, res.data.token);
-          showToast('Account Created!', 'Welcome to the system. Redirecting...', 'success');
-          setTimeout(() => { window.location.replace('dashboard.php'); }, 1200);
+          showToast('Registration Received', 'Your account is pending admin approval. You will be able to log in once approved.', 'success');
+          setTimeout(() => { window.location.replace('../../index.php'); }, 2200);
         } else {
           const errs = res.errors
             ? Object.values(res.errors).flat().join(' ')

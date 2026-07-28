@@ -86,3 +86,11 @@ try {
     // Fallback to JWT data only if DB lookup fails
     unset($_e);
 }
+
+// If the account's status changed after the token was issued (e.g. suspended,
+// or a pending registration that never should have had a session), kick it out.
+if (isset($authUser['status']) && $authUser['status'] !== 'active') {
+    setcookie('lgu_token', '', time() - 3600, '/');
+    header('Location: ' . $loginUrl);
+    exit;
+}
