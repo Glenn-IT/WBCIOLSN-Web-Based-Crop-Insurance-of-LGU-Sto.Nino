@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     password        VARCHAR(255) NOT NULL,
     phone           VARCHAR(20),
     role            ENUM('admin', 'agent', 'farmer') NOT NULL DEFAULT 'farmer',
-    status          ENUM('active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
+    status          ENUM('pending', 'active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
     profile_photo   VARCHAR(255) DEFAULT NULL,
     email_verified  TINYINT(1) DEFAULT 0,
     reset_token     VARCHAR(255) DEFAULT NULL,

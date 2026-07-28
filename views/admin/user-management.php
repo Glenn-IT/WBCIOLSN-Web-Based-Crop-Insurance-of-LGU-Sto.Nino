@@ -34,10 +34,14 @@ require_once '../../includes/head.php';
       </div>
 
       <!-- Stats -->
-      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px">
         <div class="stat-card" style="--stat-color:#1a237e">
           <div class="stat-icon" style="background:#e8eaf6;color:#1a237e">👥</div>
           <div class="stat-info"><h3 id="stat-total">0</h3><p>Total Users</p></div>
+        </div>
+        <div class="stat-card" style="--stat-color:var(--warning)">
+          <div class="stat-icon" style="background:#fff3cd;color:#856404">⏳</div>
+          <div class="stat-info"><h3 id="stat-pending">0</h3><p>Pending Approval</p></div>
         </div>
         <div class="stat-card" style="--stat-color:var(--success)">
           <div class="stat-icon" style="background:#d4edda;color:var(--success)">✅</div>
@@ -70,6 +74,7 @@ require_once '../../includes/head.php';
             </select>
             <select class="form-select" id="status-filter" onchange="filterUsers()" style="width:140px">
               <option value="">All Status</option>
+              <option value="pending">Pending Approval</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="suspended">Suspended</option>
@@ -157,6 +162,7 @@ require_once '../../includes/head.php';
             <label class="form-label">Status</label>
             <select id="field-status" class="form-select">
               <option value="active">✅ Active</option>
+              <option value="pending">⏳ Pending Approval</option>
               <option value="inactive">⏸️ Inactive</option>
               <option value="suspended">🚫 Suspended</option>
             </select>
@@ -468,6 +474,25 @@ require_once '../../includes/head.php';
       }
     }
 
+    async function approveUser(user) {
+      const name = `${user.first_name} ${user.last_name}`.trim();
+      showLoading();
+      try {
+        const res = await api('PUT', `/users/${user.id}/status`, { status: 'active' });
+        hideLoading();
+        if (res.success) {
+          showToast('Approved', `${name}'s account has been approved and can now log in.`, 'success');
+          await loadUsers();
+        } else {
+          showToast('Error', res.message || 'Failed to approve user.', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        showToast('Error', 'An error occurred while approving.', 'error');
+      }
+    }
+
     function filterUsers() {
       const q      = (document.getElementById('search-input')?.value || '').toLowerCase();
       const role   = document.getElementById('role-filter')?.value   || '';
@@ -488,6 +513,7 @@ require_once '../../includes/head.php';
     function renderStats() {
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       set('stat-total',     allUsers.length);
+      set('stat-pending',   allUsers.filter(u => u.status === 'pending').length);
       set('stat-active',    allUsers.filter(u => u.status === 'active').length);
       set('stat-inactive',  allUsers.filter(u => u.status === 'inactive').length);
       set('stat-suspended', allUsers.filter(u => u.status === 'suspended').length);
@@ -529,9 +555,13 @@ require_once '../../includes/head.php';
             <td style="white-space:nowrap">
               <button class="btn btn-sm btn-outline" title="View Details"  onclick='openViewModal(${JSON.stringify(u)})'>👁️</button>
               <button class="btn btn-sm btn-primary" title="Edit User"     onclick='openEditModal(${JSON.stringify(u)})'>✏️</button>
+              ${u.status === 'pending' ? `
+              <button class="btn btn-sm" title="Approve Account"
+                style="background:var(--success);border-color:var(--success);color:white"
+                onclick='approveUser(${JSON.stringify(u)})'>✅ Approve</button>` : `
               <button class="btn btn-sm btn-warning" title="Change Status"
                 style="background:#e67e22;border-color:#e67e22;color:white"
-                onclick='openStatusModal(${JSON.stringify(u)})'>🔄</button>
+                onclick='openStatusModal(${JSON.stringify(u)})'>🔄</button>`}
               <button class="btn btn-sm btn-danger"  title="Deactivate"    onclick='confirmDelete(${JSON.stringify(u)})'>🗑️</button>
             </td>
           </tr>`;

@@ -55,27 +55,22 @@ class AuthController extends BaseController {
             'password'   => $data['password'],
             'phone'      => sanitize($data['phone'] ?? ''),
             'role'       => 'farmer', // default role
-            'status'     => 'active',
+            'status'     => 'pending', // requires admin approval before login
         ]);
 
         $this->users->setSecurityQuestion($userId, $data['security_question'], $data['security_answer']);
 
-        $user  = $this->users->find($userId);
-        $token = jwtEncode([
-            'id'    => $user['id'],
-            'email' => $user['email'],
-            'role'  => $user['role'],
-        ]);
+        $user = $this->users->find($userId);
 
-        // Send welcome email (non-blocking — ignore failure)
-        @sendWelcomeEmail($user['email'], $user['first_name']);
+        // Send pending-approval email (non-blocking — ignore failure)
+        @sendPendingApprovalEmail($user['email'], $user['first_name']);
 
-        $this->audit($userId, 'register', 'auth', 'New farmer registered.');
+        $this->audit($userId, 'register', 'auth', 'New farmer registered (pending approval).');
 
+        // No token is issued — the account cannot log in until an admin approves it.
         sendSuccess([
-            'user'  => $this->users->sanitize($user),
-            'token' => $token,
-        ], 'Registration successful.', 201);
+            'user' => $this->users->sanitize($user),
+        ], 'Registration successful. Your account is pending admin approval before you can log in.', 201);
     }
 
     // ----------------------------------------------------------
@@ -121,6 +116,10 @@ class AuthController extends BaseController {
                 );
             }
             sendError('Invalid email or password.', 401);
+        }
+
+        if ($user['status'] === 'pending') {
+            sendError('Your account is pending admin approval. Please check back later.', 403);
         }
 
         if ($user['status'] !== 'active') {

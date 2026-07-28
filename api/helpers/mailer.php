@@ -114,3 +114,17 @@ function sendWelcomeEmail(string $to, string $name): bool {
     ");
     return sendMail($to, 'Welcome – Crop Insurance System', $body);
 }
+
+/**
+ * Send pending-approval email after a farmer self-registers.
+ */
+function sendPendingApprovalEmail(string $to, string $name): bool {
+    $body = emailTemplate('Registration Received', "
+        <p>Hi <strong>{$name}</strong>,</p>
+        <p>Thanks for registering with the Crop Insurance System. Your account is now
+           <strong>pending admin approval</strong>.</p>
+        <p>You'll receive access as soon as an administrator reviews and approves your account.
+           No further action is needed from you right now.</p>
+    ");
+    return sendMail($to, 'Registration Received – Pending Approval', $body);
+}
