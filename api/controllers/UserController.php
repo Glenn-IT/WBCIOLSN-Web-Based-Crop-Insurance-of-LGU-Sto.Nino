@@ -10,14 +10,46 @@
 // ============================================================
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/OtpModel.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../middleware/RoleMiddleware.php';
+require_once __DIR__ . '/../middleware/RateLimitMiddleware.php';
+require_once __DIR__ . '/../helpers/mailer.php';
 
 class UserController extends BaseController {
     private UserModel $users;
+    private OtpModel $otp;
 
     public function __construct() {
         $this->users = new UserModel();
+        $this->otp   = new OtpModel();
+    }
+
+    // POST /api/users/send-otp  (admin — verify a farmer's email before creating the account)
+    public function sendOtp(array $params): void {
+        $auth = requireAuth();
+        requireRole($auth, 'admin');
+        rateLimit(5, 60, 'user_send_otp');
+
+        $raw  = $this->body();
+        guardSqlInjection($raw);
+        $data = sanitizeAll($raw);
+
+        $this->validateOrFail($data, ['email' => 'required|email|max:191']);
+
+        $email = strtolower(trim($data['email']));
+        if ($this->users->emailExists($email)) {
+            sendError('Email address is already in use.', 409);
+        }
+
+        $name = trim(sanitize($data['first_name'] ?? '')) ?: 'there';
+        $code = $this->otp->create($email, 'admin_create_user');
+
+        if (!sendOtpEmail($email, $name, $code)) {
+            sendError('Failed to send verification email. Please check the address and try again.', 502);
+        }
+
+        sendSuccess(null, 'Verification code sent to ' . $email . '.');
     }
 
     // GET /api/users
@@ -54,7 +86,10 @@ class UserController extends BaseController {
         sendPaginated($items, $total, $page, $perPage);
     }
 
-    // POST /api/users  (admin creates a user)
+    // POST /api/users  (admin creates a farmer account)
+    // Requires a valid OTP (sent via sendOtp) to confirm the email is real.
+    // A temporary password is auto-generated and emailed; the farmer must
+    // change it on first login.
     public function store(array $params): void {
         $auth = requireAuth();
         requireRole($auth, 'admin');
@@ -67,11 +102,17 @@ class UserController extends BaseController {
             'first_name' => 'required|max:100',
             'last_name'  => 'required|max:100',
             'email'      => 'required|email|max:191',
-            'password'   => 'required|min:6',
+            'otp'        => 'required',
         ]);
 
-        if ($this->users->emailExists($data['email'])) {
+        $email = strtolower(trim($data['email']));
+
+        if ($this->users->emailExists($email)) {
             sendError('Email address is already in use.', 409);
+        }
+
+        if (!$this->otp->verify($email, trim($data['otp']), 'admin_create_user')) {
+            sendError('Invalid or expired verification code. Please send a new code and try again.', 422);
         }
 
         $phone = sanitize($data['phone'] ?? '');
@@ -79,18 +120,28 @@ class UserController extends BaseController {
             sendError('Phone number must be 11 digits in PH format (e.g. 09XXXXXXXXX).', 422);
         }
 
+        $tempPassword = generateTempPassword();
+        $firstName    = sanitize($data['first_name']);
+
         $userId = $this->users->createUser([
-            'first_name' => sanitize($data['first_name']),
-            'last_name'  => sanitize($data['last_name']),
-            'email'      => strtolower(trim($data['email'])),
-            'password'   => $data['password'],
-            'phone'      => $phone,
-            'role'       => 'farmer',
-            'status'     => $data['status'] ?? 'active',
+            'first_name'           => $firstName,
+            'last_name'            => sanitize($data['last_name']),
+            'email'                => $email,
+            'password'             => $tempPassword,
+            'phone'                => $phone,
+            'role'                 => 'farmer',
+            'status'               => $data['status'] ?? 'active',
+            'email_verified'       => 1,
+            'must_change_password' => 1,
         ]);
 
+        @sendTempPasswordEmail($email, $firstName, $tempPassword);
+
         $this->audit($auth['id'], 'create_user', 'users', "Admin created user #$userId");
-        sendSuccess($this->users->sanitize($this->users->find($userId)), 'User created successfully.', 201);
+        sendSuccess([
+            'user'          => $this->users->sanitize($this->users->find($userId)),
+            'temp_password' => $tempPassword,
+        ], 'User created successfully. A temporary password has been emailed to them.', 201);
     }
 
     // GET /api/users/{id}

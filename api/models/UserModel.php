@@ -68,9 +68,10 @@ class UserModel extends BaseModel {
      */
     public function resetPassword(int $userId, string $newPassword): bool {
         return $this->update($userId, [
-            'password'      => password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]),
-            'reset_token'   => null,
-            'reset_expires' => null,
+            'password'              => password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]),
+            'reset_token'           => null,
+            'reset_expires'         => null,
+            'must_change_password'  => 0,
         ]);
     }
 

@@ -1,1 +1,2 @@
-on the v1.00 can you change the button there it should be logout button not back so that we dont have any future problem lets just focus on v1.00
+1. Admin - adding user can you add a OTP confirmation like if you enter a gmail for the farmer it will send a OTP to the farmer and enter it to verify and proceed to save can you do that?
+2. Admin - Creating new user the system should create a temporary password for the Farmers adn the farmers is advise to change their password upon login 

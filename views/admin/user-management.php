@@ -140,13 +140,28 @@ require_once '../../includes/head.php';
         <div class="form-row form-row-2">
           <div class="form-group">
             <label class="form-label">Email Address <span style="color:var(--danger)">*</span></label>
-            <input type="email" id="field-email" class="form-control" placeholder="user@example.com" />
+            <div style="display:flex;gap:8px">
+              <input type="email" id="field-email" class="form-control" placeholder="user@example.com" oninput="onEmailChanged()" />
+              <button type="button" class="btn btn-outline" id="send-otp-btn"
+                style="white-space:nowrap" onclick="sendOtpCode()">📧 Send Code</button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Phone Number</label>
             <input type="text" id="field-phone" class="form-control" placeholder="e.g. 09XXXXXXXXX"
               inputmode="numeric" maxlength="11"
               oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)" />
+          </div>
+        </div>
+        <div class="form-row form-row-2" id="otp-row">
+          <div class="form-group">
+            <label class="form-label">Verification Code <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="field-otp" class="form-control" placeholder="6-digit code from email"
+              inputmode="numeric" maxlength="6"
+              oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6)" />
+            <small style="color:var(--text-muted);font-size:12px">
+              Click "Send Code" to email a verification code to this address before creating the account.
+            </small>
           </div>
         </div>
         <div class="form-row form-row-2">
@@ -168,7 +183,7 @@ require_once '../../includes/head.php';
             </select>
           </div>
         </div>
-        <div class="form-row form-row-2" id="password-row">
+        <div class="form-row form-row-2" id="password-row" style="display:none">
           <div class="form-group">
             <label class="form-label">
               Password <span style="color:var(--danger)" id="password-required">*</span>
@@ -197,6 +212,28 @@ require_once '../../includes/head.php';
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModal('user-modal')">Cancel</button>
         <button class="btn btn-primary" id="save-user-btn" onclick="saveUser()">💾 Save User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temp Password Modal -->
+  <div class="modal-overlay" id="temp-password-modal">
+    <div class="modal" style="max-width:420px;text-align:center">
+      <div class="modal-body" style="padding:36px 32px">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <h4 style="margin-bottom:6px">User Created Successfully</h4>
+        <p id="temp-password-name" style="color:var(--text-muted);font-size:14px;margin-bottom:18px"></p>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:6px">Temporary Password</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px">
+          <span id="temp-password-value"
+            style="font-size:22px;font-weight:700;letter-spacing:1px;background:#f4f4f4;
+              color:#2e7d32;padding:10px 22px;border-radius:8px"></span>
+          <button class="btn btn-sm btn-outline" onclick="copyTempPassword()">📋 Copy</button>
+        </div>
+        <p style="color:var(--text-muted);font-size:12.5px;margin-bottom:24px">
+          This has also been emailed to the farmer. They must change it on first login.
+        </p>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="closeModal('temp-password-modal')">Done</button>
       </div>
     </div>
   </div>
@@ -304,24 +341,28 @@ require_once '../../includes/head.php';
     const PER_PAGE    = 10;
     let isEditMode    = false;
 
+    let otpSent      = false;
+    let otpCooldown  = null;
+
     function openCreateModal() {
       isEditMode = false;
+      otpSent = false;
       document.getElementById('modal-title').textContent    = '➕ Add New User';
-      document.getElementById('save-user-btn').textContent  = '💾 Create User';
+      document.getElementById('save-user-btn').textContent  = '💾 Verify & Create User';
       document.getElementById('edit-user-id').value         = '';
       document.getElementById('field-first-name').value     = '';
       document.getElementById('field-last-name').value      = '';
       document.getElementById('field-email').value          = '';
       document.getElementById('field-phone').value          = '';
+      document.getElementById('field-otp').value            = '';
       document.getElementById('field-role').value           = 'farmer';
       document.getElementById('field-role').disabled         = true;
       document.getElementById('role-lock-hint').style.display = 'block';
       document.getElementById('field-status').value         = 'active';
-      document.getElementById('field-password').value       = '';
-      document.getElementById('field-confirm-password').value = '';
-      document.getElementById('password-hint').style.display     = 'none';
-      document.getElementById('password-required').style.display = 'inline';
-      document.getElementById('confirm-required').style.display  = 'inline';
+      document.getElementById('otp-row').style.display      = 'flex';
+      document.getElementById('password-row').style.display = 'none';
+      document.getElementById('field-email').disabled        = false;
+      resetOtpButton();
       openModal('user-modal');
     }
 
@@ -343,7 +384,58 @@ require_once '../../includes/head.php';
       document.getElementById('password-hint').style.display     = 'block';
       document.getElementById('password-required').style.display = 'none';
       document.getElementById('confirm-required').style.display  = 'none';
+      document.getElementById('otp-row').style.display      = 'none';
+      document.getElementById('password-row').style.display = 'flex';
       openModal('user-modal');
+    }
+
+    function resetOtpButton() {
+      if (otpCooldown) { clearInterval(otpCooldown); otpCooldown = null; }
+      const btn = document.getElementById('send-otp-btn');
+      btn.disabled = false;
+      btn.textContent = '📧 Send Code';
+    }
+
+    function onEmailChanged() {
+      // Any change to the email invalidates a previously sent/entered code.
+      if (!isEditMode) {
+        otpSent = false;
+        document.getElementById('field-otp').value = '';
+      }
+    }
+
+    async function sendOtpCode() {
+      const email     = document.getElementById('field-email').value.trim();
+      const firstName = document.getElementById('field-first-name').value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Validation', 'Enter a valid email address first.', 'error'); return;
+      }
+      const btn = document.getElementById('send-otp-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      try {
+        const res = await api('POST', '/users/send-otp', { email, first_name: firstName });
+        if (res.success) {
+          otpSent = true;
+          showToast('Code Sent', `A verification code was emailed to ${email}.`, 'success');
+          let remaining = 60;
+          btn.textContent = `Resend (${remaining}s)`;
+          otpCooldown = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) { resetOtpButton(); return; }
+            btn.textContent = `Resend (${remaining}s)`;
+          }, 1000);
+        } else {
+          showToast('Error', res.message || 'Failed to send verification code.', 'error');
+          btn.disabled = false;
+          btn.textContent = '📧 Send Code';
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Error', 'Could not send verification code.', 'error');
+        btn.disabled = false;
+        btn.textContent = '📧 Send Code';
+      }
     }
 
     function openViewModal(user) {
@@ -375,6 +467,7 @@ require_once '../../includes/head.php';
       const status    = document.getElementById('field-status').value;
       const password  = document.getElementById('field-password').value;
       const confirm   = document.getElementById('field-confirm-password').value;
+      const otp       = document.getElementById('field-otp').value.trim();
 
       if (!firstName || !lastName) {
         showToast('Validation', 'First name and last name are required.', 'error'); return;
@@ -385,18 +478,26 @@ require_once '../../includes/head.php';
       if (phone && !/^09\d{9}$/.test(phone)) {
         showToast('Validation', 'Phone number must be 11 digits in PH format (e.g. 09XXXXXXXXX).', 'error'); return;
       }
-      if (!isEditMode && !password) {
-        showToast('Validation', 'Password is required when creating a user.', 'error'); return;
-      }
-      if (password && password.length < 6) {
-        showToast('Validation', 'Password must be at least 6 characters.', 'error'); return;
-      }
-      if (password && password !== confirm) {
-        showToast('Validation', 'Passwords do not match.', 'error'); return;
-      }
 
-      const body = { first_name: firstName, last_name: lastName, email, phone, role, status };
-      if (password) body.password = password;
+      let body;
+      if (!isEditMode) {
+        if (!otpSent) {
+          showToast('Validation', 'Send a verification code to this email first.', 'error'); return;
+        }
+        if (!otp || otp.length !== 6) {
+          showToast('Validation', 'Enter the 6-digit verification code sent to the email.', 'error'); return;
+        }
+        body = { first_name: firstName, last_name: lastName, email, phone, status, otp };
+      } else {
+        if (password && password.length < 6) {
+          showToast('Validation', 'Password must be at least 6 characters.', 'error'); return;
+        }
+        if (password && password !== confirm) {
+          showToast('Validation', 'Passwords do not match.', 'error'); return;
+        }
+        body = { first_name: firstName, last_name: lastName, email, phone, role, status };
+        if (password) body.password = password;
+      }
 
       showLoading();
       try {
@@ -405,8 +506,15 @@ require_once '../../includes/head.php';
           : await api('POST', '/users', body);
         hideLoading();
         if (res.success) {
-          showToast('Success', isEditMode ? 'User updated successfully.' : 'User created successfully.', 'success');
           closeModal('user-modal');
+          if (isEditMode) {
+            showToast('Success', 'User updated successfully.', 'success');
+          } else {
+            const name = `${firstName} ${lastName}`.trim();
+            document.getElementById('temp-password-name').textContent  = `${name} (${email})`;
+            document.getElementById('temp-password-value').textContent = res.data.temp_password;
+            openModal('temp-password-modal');
+          }
           await loadUsers();
         } else {
           showToast('Error', res.message || 'Failed to save user.', 'error');
@@ -416,6 +524,13 @@ require_once '../../includes/head.php';
         console.error(err);
         showToast('Error', 'An error occurred while saving.', 'error');
       }
+    }
+
+    function copyTempPassword() {
+      const value = document.getElementById('temp-password-value').textContent;
+      navigator.clipboard.writeText(value)
+        .then(() => showToast('Copied', 'Temporary password copied to clipboard.', 'success'))
+        .catch(() => showToast('Error', 'Could not copy to clipboard.', 'error'));
     }
 
     function confirmDelete(user) {

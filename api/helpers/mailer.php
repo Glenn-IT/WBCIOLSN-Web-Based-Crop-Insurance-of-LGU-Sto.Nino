@@ -56,6 +56,14 @@ function sendMail(string $to, string $subject, string $htmlBody): bool {
 }
 
 /**
+ * Standard temporary password assigned to admin-created farmer accounts.
+ * The farmer is forced to change it on first login (must_change_password flag).
+ */
+function generateTempPassword(): string {
+    return 'Password@123';
+}
+
+/**
  * Wrap content in the standard email HTML template.
  */
 function emailTemplate(string $title, string $body): string {
@@ -113,6 +121,53 @@ function sendWelcomeEmail(string $to, string $name): bool {
         </p>
     ");
     return sendMail($to, 'Welcome – Crop Insurance System', $body);
+}
+
+/**
+ * Send an OTP code to verify an email address before an admin creates the account.
+ */
+function sendOtpEmail(string $to, string $name, string $otp): bool {
+    $body = emailTemplate('Verify This Email Address', "
+        <p>Hi <strong>{$name}</strong>,</p>
+        <p>An administrator is creating a Crop Insurance System account using this email address.
+           Please provide the code below to confirm you own this inbox:</p>
+        <p style='text-align:center;margin:24px 0;'>
+          <span style='display:inline-block;background:#f4f4f4;color:#2e7d32;
+            font-size:28px;font-weight:700;letter-spacing:6px;padding:14px 28px;border-radius:8px;'>
+            {$otp}
+          </span>
+        </p>
+        <p>This code will expire in <strong>10 minutes</strong>.</p>
+        <p>If you did not expect this, you can safely ignore this email.</p>
+    ");
+    return sendMail($to, 'Your Verification Code – Crop Insurance System', $body);
+}
+
+/**
+ * Send the auto-generated temporary password to a newly created farmer account.
+ */
+function sendTempPasswordEmail(string $to, string $name, string $tempPassword): bool {
+    $loginUrl = APP_URL . '/index.php';
+    $body     = emailTemplate('Your Account Has Been Created', "
+        <p>Hi <strong>{$name}</strong>,</p>
+        <p>An administrator has created an account for you on the Crop Insurance System.
+           Use the temporary password below to log in:</p>
+        <p style='text-align:center;margin:24px 0;'>
+          <span style='display:inline-block;background:#f4f4f4;color:#2e7d32;
+            font-size:22px;font-weight:700;letter-spacing:2px;padding:14px 28px;border-radius:8px;'>
+            {$tempPassword}
+          </span>
+        </p>
+        <p><strong>For your security, you will be required to change this password
+           immediately after logging in.</strong></p>
+        <p style='text-align:center;margin:24px 0;'>
+          <a href='{$loginUrl}'
+             style='background:#2e7d32;color:#fff;padding:12px 28px;border-radius:5px;text-decoration:none;font-size:15px;'>
+             Log In Now
+          </a>
+        </p>
+    ");
+    return sendMail($to, 'Your Temporary Password – Crop Insurance System', $body);
 }
 
 /**
