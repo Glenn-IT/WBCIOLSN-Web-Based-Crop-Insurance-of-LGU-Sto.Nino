@@ -67,74 +67,75 @@ function userNavItem(string $page, string $icon, string $label, string $current)
 </aside>
 
 <?php if (!empty($authUser['must_change_password'])): ?>
-<div class="modal-overlay active" id="force-password-modal" style="z-index:9999">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <h4>🔒 Change Your Password</h4>
-    </div>
-    <div class="modal-body">
-      <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px">
-        For your security, you must set a new password before continuing.
-        Enter the temporary password you were emailed as your current password.
-      </p>
-      <div class="form-group">
-        <label class="form-label">Temporary / Current Password</label>
-        <input type="password" id="force-current-pass" class="form-control" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">New Password</label>
-        <input type="password" id="force-new-pass" class="form-control" placeholder="Min. 8 characters" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Confirm New Password</label>
-        <input type="password" id="force-confirm-pass" class="form-control" />
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" style="width:100%" onclick="submitForcedPasswordChange()">Set New Password</button>
+<!-- Temporary Password Notification Banner -->
+<div id="temp-password-banner" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: slideDown 0.3s ease-out;
+">
+  <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+    <span style="font-size: 24px;">🔒</span>
+    <div>
+      <strong style="display: block; font-size: 15px; margin-bottom: 4px;">Welcome! You're using a temporary password</strong>
+      <span style="font-size: 13px; opacity: 0.9;">
+        For your security, please update your password in the 
+        <a href="profile.php" style="color: white; text-decoration: underline; font-weight: 600;">Profile</a> tab.
+      </span>
     </div>
   </div>
+  <button onclick="dismissTempPasswordBanner()" style="
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+  " onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+     onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+    Got it
+  </button>
 </div>
+<style>
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  /* Adjust main content to account for banner */
+  main {
+    margin-top: 56px !important;
+  }
+</style>
 <script>
-  document.body.style.overflow = 'hidden';
-
-  async function submitForcedPasswordChange() {
-    const current = document.getElementById('force-current-pass').value;
-    const newPass = document.getElementById('force-new-pass').value;
-    const confirm = document.getElementById('force-confirm-pass').value;
-    if (!current || !newPass || !confirm) {
-      showToast('Validation', 'Please fill all fields.', 'error'); return;
-    }
-    if (newPass !== confirm) {
-      showToast('Validation', 'New passwords do not match.', 'error'); return;
-    }
-    if (newPass.length < 8) {
-      showToast('Validation', 'Password must be at least 8 characters.', 'error'); return;
-    }
-    showLoading();
-    try {
-      const res = await api('POST', '/auth/change-password', {
-        current_password: current,
-        new_password:      newPass,
-      });
-      hideLoading();
-      if (res.success) {
-        showToast('Success', 'Password updated. Welcome!', 'success');
-        document.getElementById('force-password-modal').remove();
-        document.body.style.overflow = '';
-        const user = JSON.parse(localStorage.getItem('lgu_current_user') || 'null');
-        if (user) {
-          user.must_change_password = 0;
-          localStorage.setItem('lgu_current_user', JSON.stringify(user));
-        }
-      } else {
-        showToast('Error', res.message || 'Failed to change password.', 'error');
-      }
-    } catch (err) {
-      hideLoading();
-      console.error(err);
-      showToast('Error', 'An error occurred while changing your password.', 'error');
-    }
+  function dismissTempPasswordBanner() {
+    const banner = document.getElementById('temp-password-banner');
+    banner.style.animation = 'slideDown 0.3s ease-out reverse';
+    setTimeout(() => {
+      banner.remove();
+      document.querySelector('main').style.marginTop = '';
+    }, 300);
+    
+    // Store dismissal in localStorage (optional - banner will show again on next page load)
+    localStorage.setItem('temp_password_banner_dismissed', Date.now());
   }
 </script>
 <?php endif; ?>

@@ -45,6 +45,27 @@ require_once '../../includes/head.php';
 
         <!-- Step 3: Set new password -->
         <div id="step3" style="display:none">
+          
+          <!-- Password Requirements Info -->
+          <div style="
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid #2196F3;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 11px;
+          ">
+            <div style="display: flex; align-items: start; gap: 8px;">
+              <span style="font-size: 16px;">ℹ️</span>
+              <div style="flex: 1; color: #424242; line-height: 1.5;">
+                <strong style="color: #1976d2; display: block; margin-bottom: 3px;">Password must contain:</strong>
+                8+ chars • Uppercase • Lowercase • Number • Special (@#!)
+                <br><strong style="color: #2e7d32;">Example:</strong> 
+                <code style="background: rgba(46,125,50,0.1); padding: 1px 4px; border-radius: 2px; font-weight: 600; color: #2e7d32;">Password@123</code>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label class="form-label">New Password</label>
             <div class="input-group">

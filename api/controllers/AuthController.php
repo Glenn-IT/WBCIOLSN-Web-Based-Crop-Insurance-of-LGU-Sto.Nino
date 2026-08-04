@@ -27,7 +27,17 @@ class AuthController extends BaseController {
 
         $raw  = $this->body();
         guardSqlInjection($raw);
-        $data = sanitizeAll($raw);
+        
+        // IMPORTANT: Do NOT sanitize password and security_answer
+        $data = [
+            'first_name'        => sanitize($raw['first_name'] ?? ''),
+            'last_name'         => sanitize($raw['last_name'] ?? ''),
+            'email'             => trim($raw['email'] ?? ''),
+            'password'          => $raw['password'] ?? '',
+            'phone'             => sanitize($raw['phone'] ?? ''),
+            'security_question' => sanitize($raw['security_question'] ?? ''),
+            'security_answer'   => $raw['security_answer'] ?? '',
+        ];
 
         $this->validateOrFail($data, [
             'first_name'        => 'required|max:100',
@@ -49,11 +59,11 @@ class AuthController extends BaseController {
         }
 
         $userId = $this->users->createUser([
-            'first_name' => sanitize($data['first_name']),
-            'last_name'  => sanitize($data['last_name']),
+            'first_name' => $data['first_name'],
+            'last_name'  => $data['last_name'],
             'email'      => $email,
             'password'   => $data['password'],
-            'phone'      => sanitize($data['phone'] ?? ''),
+            'phone'      => $data['phone'],
             'role'       => 'farmer', // default role
             'status'     => 'pending', // requires admin approval before login
         ]);
@@ -179,7 +189,14 @@ class AuthController extends BaseController {
     public function resetPassword(array $params): void {
         rateLimit(5, 60, 'forgot'); // shares the forgot-password rate limit bucket
 
-        $data = $this->body();
+        $rawData = $this->body();
+        
+        // IMPORTANT: Do NOT sanitize password and answer
+        $data = [
+            'email'    => trim($rawData['email'] ?? ''),
+            'answer'   => $rawData['answer'] ?? '',
+            'password' => $rawData['password'] ?? '',
+        ];
 
         $this->validateOrFail($data, [
             'email'    => 'required|email',
@@ -191,7 +208,7 @@ class AuthController extends BaseController {
         $pwError = validatePasswordStrength($data['password']);
         if ($pwError) sendValidationError(['password' => [$pwError]]);
 
-        $user = $this->users->findByEmail(trim($data['email']));
+        $user = $this->users->findByEmail($data['email']);
 
         if (!$user || !$this->users->verifySecurityAnswer($user, $data['answer'])) {
             sendError('Incorrect answer to the security question.', 401);
@@ -221,7 +238,14 @@ class AuthController extends BaseController {
     // ----------------------------------------------------------
     public function changePassword(array $params): void {
         $payload = requireAuth();
-        $data    = sanitizeAll($this->body());
+        $rawData = $this->body();
+        
+        // IMPORTANT: Do NOT sanitize passwords - they need exact verification
+        $data = [
+            'current_password' => $rawData['current_password'] ?? '',
+            'new_password'     => $rawData['new_password'] ?? '',
+        ];
+        
         $this->validateOrFail($data, [
             'current_password' => 'required',
             'new_password'     => 'required|min:8|max:255',
@@ -244,7 +268,14 @@ class AuthController extends BaseController {
     // ----------------------------------------------------------
     public function setSecurityQuestion(array $params): void {
         $payload = requireAuth();
-        $data    = $this->body();
+        $rawData = $this->body();
+        
+        // IMPORTANT: Do NOT sanitize the password field
+        $data = [
+            'current_password'  => $rawData['current_password'] ?? '',
+            'security_question' => sanitize($rawData['security_question'] ?? ''),
+            'security_answer'   => sanitize($rawData['security_answer'] ?? ''),
+        ];
 
         $this->validateOrFail($data, [
             'current_password'  => 'required',

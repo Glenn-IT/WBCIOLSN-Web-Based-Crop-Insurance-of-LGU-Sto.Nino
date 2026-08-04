@@ -1,4 +1,3 @@
-<?php require_once '../../components/under-construction.php'; ?>
 <?php
 $pageTitle   = 'My Profile — Crop Insurance';
 $basePath    = '../../';
@@ -146,16 +145,69 @@ $initials  = strtoupper(
           <div class="card">
             <div class="card-header"><h5>🔒 Change Password</h5></div>
             <div class="card-body">
+              <?php if (!empty($authUser['must_change_password'])): ?>
+              <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 16px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+              ">
+                <span style="font-size: 28px;">⚠️</span>
+                <div style="flex: 1;">
+                  <strong style="display: block; font-size: 15px; margin-bottom: 4px;">You're using a temporary password</strong>
+                  <span style="font-size: 13px; opacity: 0.95;">
+                    Please change your password below for security. Your current password was sent to your email.
+                  </span>
+                </div>
+              </div>
+              <?php endif; ?>
               <div class="form-group">
                 <label class="form-label">Current Password</label>
                 <div class="input-group">
                   <span class="input-icon">🔒</span>
                   <input type="password" id="current-pass" class="form-control"
-                    placeholder="Enter current password" />
+                    placeholder="<?= !empty($authUser['must_change_password']) ? 'Enter temporary password from email' : 'Enter current password' ?>" />
                   <span class="input-icon-right"
                     onclick="togglePassword('current-pass', this)">👁️</span>
                 </div>
               </div>
+              
+              <!-- Password Requirements Info -->
+              <div style="
+                background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                border-left: 4px solid #2196F3;
+                padding: 14px 16px;
+                border-radius: 6px;
+                margin-bottom: 16px;
+              ">
+                <div style="display: flex; align-items: start; gap: 10px;">
+                  <span style="font-size: 20px; margin-top: 2px;">ℹ️</span>
+                  <div style="flex: 1;">
+                    <strong style="display: block; color: #1976d2; font-size: 13px; margin-bottom: 6px;">
+                      Password Requirements
+                    </strong>
+                    <div style="font-size: 12px; color: #424242; line-height: 1.6;">
+                      Your password must contain:
+                      <ul style="margin: 6px 0 0 0; padding-left: 20px;">
+                        <li>At least <strong>8 characters</strong></li>
+                        <li>At least <strong>1 uppercase letter</strong> (A-Z)</li>
+                        <li>At least <strong>1 lowercase letter</strong> (a-z)</li>
+                        <li>At least <strong>1 number</strong> (0-9)</li>
+                        <li>At least <strong>1 special character</strong> (@, #, !, etc.)</li>
+                      </ul>
+                      <div style="margin-top: 8px; padding: 6px 10px; background: rgba(255,255,255,0.7); border-radius: 4px; display: inline-block;">
+                        <strong style="color: #2e7d32;">Example:</strong> 
+                        <code style="background: rgba(46,125,50,0.1); padding: 2px 6px; border-radius: 3px; font-weight: 600; color: #2e7d32;">Password@123</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div class="form-group">
                 <label class="form-label">New Password</label>
                 <input type="password" id="new-pass" class="form-control"
@@ -322,6 +374,18 @@ $initials  = strtoupper(
             const el = document.getElementById(id);
             if (el) el.value = '';
           });
+          
+          // Update localStorage to clear the must_change_password flag
+          const storedUser = JSON.parse(localStorage.getItem('lgu_current_user') || 'null');
+          if (storedUser) {
+            storedUser.must_change_password = 0;
+            localStorage.setItem('lgu_current_user', JSON.stringify(storedUser));
+          }
+          
+          // Reload the page to remove the warning banner
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
         } else {
           showToast('Error', res.message || 'Failed to change password.', 'error');
         }
