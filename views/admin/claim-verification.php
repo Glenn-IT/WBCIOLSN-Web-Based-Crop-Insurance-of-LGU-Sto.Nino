@@ -1,4 +1,3 @@
-<?php require_once '../../components/under-construction.php'; ?>
 <?php
 $pageTitle   = 'Claim Verification — Admin';
 $basePath    = '../../';
