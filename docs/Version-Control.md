@@ -22,6 +22,7 @@
 | v3.00   | Admin + User | User Management, Farmer Dashboard (added to v2.00 baseline) | All other pages |
 | v3.10   | Admin + User | All remaining pages unlocked *(Full System)* | — |
 | v4.00   | Admin + User | View Applications, New Application (added to v3.00 baseline) | All other pages |
+| v5.00   | Admin + User | Manage Applications, My Applications, Application Status (added to v4.00 baseline) | Claim Verification, Reports, File a Claim, Profile |
 
 ---
 
@@ -128,6 +129,15 @@ the `v4.00` snapshot via `git checkout -b temp-fix-v4.00 v4.00` + `git cherry-pi
 `v4.00` also requires admin approval before a newly self-registered farmer can log in — without
 pulling in any other later `main` changes into the tag.
 
+### v5.00 — Unlock Manage Applications + My Applications + Application Status
+Built on top of the v4.00 baseline. Unlocks Manage Applications (Admin), My Applications (Farmer), and Application Status (Farmer):
+- Remove gate from `views/admin/manage-applications.php`
+- Remove gate from `views/user/my-applications.php`
+- Remove gate from `views/user/application-status.php`
+- Stay unlocked (carried over from v4.00): `views/admin/dashboard.php`, `views/admin/admin-profile.php`, `views/admin/user-management.php`, `views/admin/view-applications.php`, `views/user/dashboard.php`, `views/user/new-application.php`
+- Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
+- Stay gated: `views/admin/claim-verification.php`, `views/admin/reports.php`, `views/admin/mail-test.php`, `views/user/file-claim.php`, `views/user/profile.php`
+
 ---
 
 ## Under Construction Strategy
@@ -203,6 +213,7 @@ git push origin --tags  # push all tags at once
 | v3.00   | v3.00    | 84beae93a22b87dc96550d2a5e71c4935e0d12bd |
 | v3.10   | v3.10    | 6d45ffb5a067dcb9cb59d0c868ae0d1308e8ed58 |
 | v4.00   | v4.00    | caf2920d9692fd7ebb37ac95da23de724ff7b1cb |
+| v5.00   | v5.00    | ec386aa8f96a064c6d16259190dd5a4ee0815619 |
 
 Fill commit hashes after all versions are tagged using:
 

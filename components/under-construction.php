@@ -1,9 +1,7 @@
 <?php
-define('CURRENT_VERSION', 'v4.00');
+define('CURRENT_VERSION', 'v5.00');
 
-// Under construction gate disabled / removed for full system access
-return;
-?>
+// Prevent the browser from caching this page (blocks bfcache restoration after logout)
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 ?>
