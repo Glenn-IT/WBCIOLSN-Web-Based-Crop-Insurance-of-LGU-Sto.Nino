@@ -634,12 +634,12 @@ require_once '../../includes/head.php';
             <td style="vertical-align:middle">${formatCurrency(p.coverage_amount)}</td>
             <td style="vertical-align:middle">${getStatusBadge(p.status)}</td>
             <td style="white-space:nowrap;vertical-align:middle">
-              <div style="display:flex;flex-direction:column;gap:5px;width:130px">
-                <button class="btn btn-sm btn-primary" onclick="openManage(${p.id})" title="Manage details" style="width:100%;text-align:center">⚙️ Manage</button>
-                <button class="btn btn-sm btn-success" ${isApproved ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Approved')" title="${isApproved ? 'Already Approved' : 'Approve Application'}">✅ Approve</button>
-                <button class="btn btn-sm" style="background:#0288d1;color:white;border-color:#0288d1;width:100%;text-align:center;${isUnderReview ? 'opacity:0.5;cursor:not-allowed' : ''}" ${isUnderReview ? 'disabled' : ''} onclick="quickDecision(${p.id}, 'UnderReview')" title="${isUnderReview ? 'Already Under Review' : 'Set Under Review'}">🔍 Review</button>
-                <button class="btn btn-sm btn-danger" ${isRejected ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Rejected')" title="${isRejected ? 'Already Rejected' : 'Reject Application'}">❌ Reject</button>
-                <button class="btn btn-sm btn-warning" ${isPending ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Pending')" title="${isPending ? 'Already Pending' : 'Set to Pending'}">⏳ Pending</button>
+              <div style="display:inline-flex;gap:4px;align-items:center">
+                <button class="btn btn-sm btn-primary" onclick="openManage(${p.id})" title="Manage details">⚙️ Manage</button>
+                <button class="btn btn-sm btn-success" ${isApproved ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="quickDecision(${p.id}, 'Approved')" title="${isApproved ? 'Already Approved' : 'Approve Application'}">✅ Approve</button>
+                <button class="btn btn-sm" style="background:#0288d1;color:white;border-color:#0288d1;${isUnderReview ? 'opacity:0.5;cursor:not-allowed' : ''}" ${isUnderReview ? 'disabled' : ''} onclick="quickDecision(${p.id}, 'UnderReview')" title="${isUnderReview ? 'Already Under Review' : 'Set Under Review'}">🔍 Review</button>
+                <button class="btn btn-sm btn-danger" ${isRejected ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="quickDecision(${p.id}, 'Rejected')" title="${isRejected ? 'Already Rejected' : 'Reject Application'}">❌ Reject</button>
+                <button class="btn btn-sm btn-warning" ${isPending ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="quickDecision(${p.id}, 'Pending')" title="${isPending ? 'Already Pending' : 'Set to Pending'}">⏳ Pending</button>
               </div>
             </td>
           </tr>`;
