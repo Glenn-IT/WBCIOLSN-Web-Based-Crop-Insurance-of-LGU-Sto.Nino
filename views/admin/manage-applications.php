@@ -91,6 +91,44 @@ require_once '../../includes/head.php';
     </div>
   </div>
 
+  <!-- System Action Confirmation Modal -->
+  <div class="modal-overlay" id="action-confirm-modal">
+    <div class="modal" style="max-width:440px;text-align:center">
+      <div class="modal-body" style="padding:32px 28px">
+        <div id="confirm-modal-icon" style="font-size:52px;margin-bottom:12px">❓</div>
+        <h4 id="confirm-modal-title" style="margin-bottom:8px;color:var(--text-dark,#1e293b);font-size:18px">Confirm Action</h4>
+        <p id="confirm-modal-msg" style="color:var(--text-muted);font-size:14px;margin-bottom:20px;white-space:pre-line;line-height:1.5"></p>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button class="btn btn-ghost" onclick="closeModal('action-confirm-modal')">Cancel</button>
+          <button class="btn btn-primary" id="confirm-modal-btn">Proceed</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Rejection Prompt Modal -->
+  <div class="modal-overlay" id="reject-prompt-modal">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h4 style="color:var(--danger)">❌ Reject Application — <span id="reject-modal-ref"></span></h4>
+        <button class="modal-close" onclick="closeModal('reject-prompt-modal')">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:14px">
+          Please provide a mandatory reason for rejecting this policy application:
+        </p>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="font-weight:600">Rejection Reason / Admin Notes <span style="color:var(--danger)">*</span></label>
+          <textarea id="reject-modal-reason" class="form-control" rows="3" placeholder="Enter specific reason for rejection..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('reject-prompt-modal')">Cancel</button>
+        <button class="btn btn-danger" id="reject-modal-confirm-btn">❌ Reject Application</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Edit/Update Modal -->
   <div class="modal-overlay" id="manage-modal">
     <div class="modal modal-lg">
@@ -379,6 +417,195 @@ require_once '../../includes/head.php';
       });
     }
 
+    function showSystemConfirm({ icon = '❓', title = 'Confirm Action', message, confirmText = 'Confirm', confirmClass = 'btn-primary' }) {
+      return new Promise((resolve) => {
+        document.getElementById('confirm-modal-icon').textContent = icon;
+        document.getElementById('confirm-modal-title').textContent = title;
+        document.getElementById('confirm-modal-msg').textContent = message;
+
+        const btn = document.getElementById('confirm-modal-btn');
+        btn.textContent = confirmText;
+        btn.className = `btn ${confirmClass}`;
+
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.onclick = () => {
+          closeModal('action-confirm-modal');
+          resolve(true);
+        };
+
+        openModal('action-confirm-modal');
+      });
+    }
+
+    function showSystemPrompt({ ref }) {
+      return new Promise((resolve) => {
+        document.getElementById('reject-modal-ref').textContent = ref;
+        const input = document.getElementById('reject-modal-reason');
+        input.value = '';
+
+        const btn = document.getElementById('reject-modal-confirm-btn');
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.onclick = () => {
+          const val = input.value.trim();
+          if (!val) {
+            showToast('Required', 'Please enter a rejection reason.', 'error');
+            return;
+          }
+          closeModal('reject-prompt-modal');
+          resolve(val);
+        };
+
+        openModal('reject-prompt-modal');
+      });
+    }
+
+    async function quickDecision(id, status) {
+      const app = allApps.find(a => a.id == id);
+      const ref = app ? (app.policy_number || 'APP-' + app.id) : 'APP-' + id;
+
+      if (status === 'Approved') {
+        const isFarmVer     = (app?.farm_verification     || '').toLowerCase() === 'verified';
+        const isDamageVer   = (app?.damage_verification   || '').toLowerCase() === 'verified';
+        const isCoverageVer = (app?.coverage_verification || '').toLowerCase() === 'verified';
+        const allVer        = isFarmVer && isDamageVer && isCoverageVer;
+
+        if (!allVer) {
+          const confirmVerify = await showSystemConfirm({
+            icon: '⚠️',
+            title: `Approve Application ${ref}?`,
+            message: `This application has unverified items:\n` +
+              `• Farm Info: ${app?.farm_verification || 'Pending'}\n` +
+              `• Damage Report: ${app?.damage_verification || 'Pending'}\n` +
+              `• Coverage: ${app?.coverage_verification || 'Pending'}\n\n` +
+              `Would you like to mark all verifications as Verified and Approve this application?`,
+            confirmText: '✅ Verify All & Approve',
+            confirmClass: 'btn-success'
+          });
+          if (!confirmVerify) return;
+
+          showLoading();
+          try {
+            const verRes = await api('PUT', `/policies/${id}`, {
+              farm_verification: 'Verified',
+              damage_verification: 'Verified',
+              coverage_verification: 'Verified'
+            });
+            if (!verRes.success) {
+              hideLoading();
+              showToast('Error', verRes.message || 'Failed to update verifications.', 'error');
+              return;
+            }
+          } catch (err) {
+            hideLoading();
+            console.error(err);
+            showToast('Error', 'Error updating verifications.', 'error');
+            return;
+          }
+        } else {
+          const confirmed = await showSystemConfirm({
+            icon: '✅',
+            title: 'Approve Application',
+            message: `Are you sure you want to approve application ${ref}?`,
+            confirmText: '✅ Yes, Approve',
+            confirmClass: 'btn-success'
+          });
+          if (!confirmed) return;
+        }
+
+        showLoading();
+        try {
+          const res = await api('PUT', `/policies/${id}/approve`, { remarks: 'Approved from table actions.' });
+          hideLoading();
+          if (res.success) {
+            showToast('Approved', `Application ${ref} has been approved!`, 'success');
+            await loadApplications();
+          } else {
+            showToast('Error', res.message || 'Failed to approve application.', 'error');
+          }
+        } catch (err) {
+          hideLoading();
+          console.error(err);
+          showToast('Error', 'Error approving application.', 'error');
+        }
+
+      } else if (status === 'UnderReview') {
+        const confirmed = await showSystemConfirm({
+          icon: '🔍',
+          title: 'Set Under Review',
+          message: `Set application ${ref} status to Under Review?`,
+          confirmText: '🔍 Set Under Review',
+          confirmClass: 'btn-primary'
+        });
+        if (!confirmed) return;
+
+        showLoading();
+        try {
+          const res = await api('PUT', `/policies/${id}/review`, { remarks: 'Set under review from table actions.' });
+          hideLoading();
+          if (res.success) {
+            showToast('Updated', `Application ${ref} is now Under Review.`, 'success');
+            await loadApplications();
+          } else {
+            showToast('Error', res.message || 'Failed to update status.', 'error');
+          }
+        } catch (err) {
+          hideLoading();
+          console.error(err);
+          showToast('Error', 'Error updating status.', 'error');
+        }
+
+      } else if (status === 'Rejected') {
+        const remarks = await showSystemPrompt({ ref });
+        if (!remarks) return;
+
+        showLoading();
+        try {
+          const res = await api('PUT', `/policies/${id}/reject`, { remarks });
+          hideLoading();
+          if (res.success) {
+            showToast('Rejected', `Application ${ref} has been rejected.`, 'success');
+            await loadApplications();
+          } else {
+            showToast('Error', res.message || 'Failed to reject application.', 'error');
+          }
+        } catch (err) {
+          hideLoading();
+          console.error(err);
+          showToast('Error', 'Error rejecting application.', 'error');
+        }
+
+      } else if (status === 'Pending') {
+        const confirmed = await showSystemConfirm({
+          icon: '⏳',
+          title: 'Set to Pending',
+          message: `Set application ${ref} back to Pending status?`,
+          confirmText: '⏳ Set to Pending',
+          confirmClass: 'btn-warning'
+        });
+        if (!confirmed) return;
+
+        showLoading();
+        try {
+          const res = await api('PUT', `/policies/${id}`, { status: 'pending', remarks: 'Set to pending from table actions.' });
+          hideLoading();
+          if (res.success) {
+            showToast('Updated', `Application ${ref} set to Pending.`, 'success');
+            await loadApplications();
+          } else {
+            showToast('Error', res.message || 'Failed to update status.', 'error');
+          }
+        } catch (err) {
+          hideLoading();
+          console.error(err);
+          showToast('Error', 'Error updating status.', 'error');
+        }
+      }
+    }
+
     function renderTable(apps) {
       const tbody = document.getElementById('apps-table-body');
       const empty = document.getElementById('empty-state');
@@ -391,18 +618,29 @@ require_once '../../includes/head.php';
       if (empty) empty.classList.add('hidden');
       tbody.innerHTML = apps.map(p => {
         const ref = (p.policy_number || 'APP-' + p.id).replace(/"/g, '');
+        const currentStatus = (p.status || '').toLowerCase();
+        const isApproved    = currentStatus === 'active';
+        const isUnderReview = currentStatus === 'under_review';
+        const isRejected    = currentStatus === 'rejected';
+        const isPending     = currentStatus === 'pending';
+
         return `
           <tr>
-            <td><strong>${p.policy_number || 'APP-' + p.id}</strong></td>
-            <td>${(p.first_name || '') + ' ' + (p.last_name || '')}</td>
-            <td>${p.farm_location || p.barangay || p.municipality || '—'}</td>
-            <td>${p.area_hectares || p.land_area || '—'} ha</td>
-            <td>${p.percent_damage ? p.percent_damage + '%' : '—'}</td>
-            <td>${formatCurrency(p.coverage_amount)}</td>
-            <td>${getStatusBadge(p.status)}</td>
-            <td style="white-space:nowrap">
-              <button class="btn btn-sm btn-primary" onclick="openManage(${p.id})">⚙️ Manage</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteApp(${p.id}, &quot;${ref}&quot;)">🗑️</button>
+            <td style="vertical-align:middle"><strong>${p.policy_number || 'APP-' + p.id}</strong></td>
+            <td style="vertical-align:middle">${(p.first_name || '') + ' ' + (p.last_name || '')}</td>
+            <td style="vertical-align:middle">${p.farm_location || p.barangay || p.municipality || '—'}</td>
+            <td style="vertical-align:middle">${p.area_hectares || p.land_area || '—'} ha</td>
+            <td style="vertical-align:middle">${p.percent_damage ? p.percent_damage + '%' : '—'}</td>
+            <td style="vertical-align:middle">${formatCurrency(p.coverage_amount)}</td>
+            <td style="vertical-align:middle">${getStatusBadge(p.status)}</td>
+            <td style="white-space:nowrap;vertical-align:middle">
+              <div style="display:flex;flex-direction:column;gap:5px;width:130px">
+                <button class="btn btn-sm btn-primary" onclick="openManage(${p.id})" title="Manage details" style="width:100%;text-align:center">⚙️ Manage</button>
+                <button class="btn btn-sm btn-success" ${isApproved ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Approved')" title="${isApproved ? 'Already Approved' : 'Approve Application'}">✅ Approve</button>
+                <button class="btn btn-sm" style="background:#0288d1;color:white;border-color:#0288d1;width:100%;text-align:center;${isUnderReview ? 'opacity:0.5;cursor:not-allowed' : ''}" ${isUnderReview ? 'disabled' : ''} onclick="quickDecision(${p.id}, 'UnderReview')" title="${isUnderReview ? 'Already Under Review' : 'Set Under Review'}">🔍 Review</button>
+                <button class="btn btn-sm btn-danger" ${isRejected ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Rejected')" title="${isRejected ? 'Already Rejected' : 'Reject Application'}">❌ Reject</button>
+                <button class="btn btn-sm btn-warning" ${isPending ? 'disabled style="opacity:0.5;cursor:not-allowed;width:100%;text-align:center"' : 'style="width:100%;text-align:center"'} onclick="quickDecision(${p.id}, 'Pending')" title="${isPending ? 'Already Pending' : 'Set to Pending'}">⏳ Pending</button>
+              </div>
             </td>
           </tr>`;
       }).join('');
