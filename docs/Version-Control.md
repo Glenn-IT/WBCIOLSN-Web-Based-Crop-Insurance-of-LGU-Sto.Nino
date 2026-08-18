@@ -230,7 +230,7 @@ git push origin --tags  # push all tags at once
 | v4.00   | v4.00    | caf2920d9692fd7ebb37ac95da23de724ff7b1cb |
 | v5.00   | v5.00    | ec386aa8f96a064c6d16259190dd5a4ee0815619 |
 | v5.10   | v5.10    | cd339a58e9be2b2e019ffd24a79401313674bae0 |
-| v6.00   | v6.00    | 16d43ec4bcc96d8b0bfb203a04107dcf639d016d |
+| v6.00   | v6.00    | d9e754c52d53f5fdfb0c8208274d30f661545ed9 |
 
 Fill commit hashes after all versions are tagged using:
 
