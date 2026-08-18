@@ -24,6 +24,7 @@
 | v4.00   | Admin + User | View Applications, New Application (added to v3.00 baseline) | All other pages |
 | v5.00   | Admin + User | Manage Applications, My Applications, Application Status (added to v4.00 baseline) | Claim Verification, Reports, File a Claim, Profile |
 | v5.10   | Admin + User | Enhanced Application Decision Management (quick vertical actions & custom system modals) | Claim Verification, Reports, File a Claim, Profile |
+| v6.00   | Admin + User | Unlock Claim Verification & Integrated System Updates | Reports, File a Claim, Profile |
 
 ---
 
@@ -145,6 +146,13 @@ Built on top of the v5.00 baseline. Enhances Manage Applications (`views/admin/m
 - Removed the Delete action button feature.
 - Replaced browser `confirm()` and `prompt()` popups ("localhost says") with custom system action confirmation and rejection reason modal overlays matching system branding.
 
+### v6.00 — Unlock Claim Verification & Integrated System Updates
+Built on top of the v5.10 baseline. Unlocks Claim Verification (`views/admin/claim-verification.php`):
+- Remove gate from `views/admin/claim-verification.php`
+- Stay unlocked (carried over from v5.10): `views/admin/dashboard.php`, `views/admin/admin-profile.php`, `views/admin/user-management.php`, `views/admin/view-applications.php`, `views/admin/manage-applications.php`, `views/user/dashboard.php`, `views/user/new-application.php`, `views/user/my-applications.php`, `views/user/application-status.php`
+- Stay unlocked (v1.00 baseline): `index.php`, `views/admin/login.php`, `views/user/signup.php`, `views/user/forgot-password.php`
+- Stay gated: `views/admin/reports.php`, `views/admin/mail-test.php`, `views/user/file-claim.php`, `views/user/profile.php`
+
 ---
 
 ## Under Construction Strategy
@@ -222,6 +230,7 @@ git push origin --tags  # push all tags at once
 | v4.00   | v4.00    | caf2920d9692fd7ebb37ac95da23de724ff7b1cb |
 | v5.00   | v5.00    | ec386aa8f96a064c6d16259190dd5a4ee0815619 |
 | v5.10   | v5.10    | cd339a58e9be2b2e019ffd24a79401313674bae0 |
+| v6.00   | v6.00    | 16d43ec4bcc96d8b0bfb203a04107dcf639d016d |
 
 Fill commit hashes after all versions are tagged using:
 
