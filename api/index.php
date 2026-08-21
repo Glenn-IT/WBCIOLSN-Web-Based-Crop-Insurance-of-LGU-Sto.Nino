@@ -17,6 +17,7 @@ require_once __DIR__ . '/controllers/ClaimController.php';
 require_once __DIR__ . '/controllers/PaymentController.php';
 require_once __DIR__ . '/controllers/NotificationController.php';
 require_once __DIR__ . '/controllers/ReportController.php';
+require_once __DIR__ . '/controllers/SmsLogController.php';
 
 // Load models
 require_once __DIR__ . '/models/UserModel.php';
@@ -27,6 +28,7 @@ require_once __DIR__ . '/models/ClaimModel.php';
 require_once __DIR__ . '/models/PaymentModel.php';
 require_once __DIR__ . '/models/NotificationModel.php';
 require_once __DIR__ . '/models/ReportModel.php';
+require_once __DIR__ . '/models/SmsLogModel.php';
 
 // Load base classes
 require_once __DIR__ . '/models/BaseModel.php';
@@ -120,6 +122,12 @@ $router->get('/reports/trends/premium',             [ReportController::class, 'p
 $router->get('/reports/claims/by-crop',             [ReportController::class, 'claimsByCrop']);
 $router->get('/reports/claims/by-province',         [ReportController::class, 'claimsByProvince']);
 $router->get('/reports/export/{type}',              [ReportController::class, 'export']);
+
+// ---- SMS Log routes ----
+$router->get('/sms-logs',                           [SmsLogController::class, 'index']);
+$router->get('/sms-logs/{id}',                      [SmsLogController::class, 'show']);
+$router->post('/sms-logs/{id}/resend',              [SmsLogController::class, 'resend']);
+$router->delete('/sms-logs/clear',                  [SmsLogController::class, 'clear']);
 
 // Dispatch
 $router->dispatch();

@@ -102,22 +102,26 @@ class ClaimController extends BaseController {
             'status' => 'required|in:submitted,under_review,approved,rejected,paid',
         ]);
 
+        $remarks = sanitize($data['remarks'] ?? '');
+        $approvedAmount = 0.0;
+
         $update = [
             'status'      => $data['status'],
             'reviewed_by' => $auth['id'],
             'reviewed_at' => date('Y-m-d H:i:s'),
-            'remarks'     => sanitize($data['remarks'] ?? ''),
+            'remarks'     => $remarks,
         ];
 
         if ($data['status'] === 'approved') {
             $this->validateOrFail($data, ['approved_amount' => 'required|numeric']);
-            $update['approved_amount'] = (float)$data['approved_amount'];
+            $approvedAmount = (float)$data['approved_amount'];
+            $update['approved_amount'] = $approvedAmount;
         }
 
         $this->claims->update($id, $update);
         $this->audit($auth['id'], 'update_claim_status', 'claims',
             "Set claim #$id to {$data['status']}");
-        notifyClaimStatusUpdated((int)$claim['user_id'], $claim['claim_number'], $data['status']);
+        notifyClaimStatusUpdated((int)$claim['user_id'], $claim['claim_number'], $data['status'], $approvedAmount, $remarks);
         sendSuccess($this->claims->getWithDetails($id), 'Claim status updated.');
     }
 

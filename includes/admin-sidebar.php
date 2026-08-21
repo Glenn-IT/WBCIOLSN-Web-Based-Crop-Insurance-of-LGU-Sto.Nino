@@ -30,6 +30,7 @@ function adminNavItem(string $page, string $icon, string $label, string $current
     <?= adminNavItem('manage-applications', '⚙️',  'Manage Applications', $currentPage) ?>
     <?= adminNavItem('claim-verification',  '✅', 'Claim Verification',  $currentPage, 'pending-badge') ?>
     <?= adminNavItem('user-management',     '👥', 'User Management',     $currentPage) ?>
+    <?= adminNavItem('sms-logs',            '📱', 'SMS Logs',            $currentPage) ?>
 
     <div class="nav-section-label">Reports & Settings</div>
     <?= adminNavItem('reports',       '📈', 'Reports',       $currentPage) ?>

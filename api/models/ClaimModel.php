@@ -19,7 +19,7 @@ class ClaimModel extends BaseModel {
     public function getWithDetails(int $id): ?array {
         return $this->rawOne(
             "SELECT c.*,
-                    u.first_name, u.last_name, u.email,
+                    u.first_name, u.last_name, u.email, u.phone,
                     p.policy_number, p.coverage_amount,
                     f.farm_name, f.location,
                     CONCAT(r.first_name,' ',r.last_name) AS reviewer_name

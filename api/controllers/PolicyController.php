@@ -122,6 +122,7 @@ class PolicyController extends BaseController {
     }
 
     // PUT /api/policies/{id}/approve
+    // PUT /api/policies/{id}/approve
     public function approve(array $params): void {
         $auth = requireAuth();
         requireRole($auth, ['admin', 'agent']);
@@ -133,17 +134,18 @@ class PolicyController extends BaseController {
         $raw  = $this->body();
         guardSqlInjection($raw);
         $data = sanitizeAll($raw);
+        $remarks = sanitize($data['remarks'] ?? '');
 
         $this->policies->update($id, [
             'status'      => 'active',
             'agent_id'    => $auth['id'],
             'approved_at' => date('Y-m-d H:i:s'),
             'approved_by' => $auth['id'],
-            'remarks'     => sanitize($data['remarks'] ?? ''),
+            'remarks'     => $remarks,
         ]);
 
         $this->audit($auth['id'], 'approve_policy', 'policies', "Approved policy #$id");
-        notifyPolicyApproved((int)$policy['user_id'], $policy['policy_number']);
+        notifyPolicyApproved((int)$policy['user_id'], $policy['policy_number'], $remarks);
         sendSuccess($this->policies->getWithDetails($id), 'Policy approved successfully.');
     }
 
@@ -188,6 +190,7 @@ class PolicyController extends BaseController {
         guardSqlInjection($raw);
         $data = sanitizeAll($raw);
 
+        $oldStatus = $policy['status'];
         $updateFields = [
             'cause_of_damage'    => sanitize($data['cause_of_damage']    ?? $policy['cause_of_damage']),
             'percent_damage'     => isset($data['percent_damage'])    ? (float)$data['percent_damage']    : $policy['percent_damage'],
@@ -212,12 +215,27 @@ class PolicyController extends BaseController {
             }
         }
 
-        // Admin-only: allow status change to pending
+        // Admin-only: allow status change to pending or other status
         if (in_array($auth['role'], ['admin', 'agent']) && isset($data['status'])) {
             $updateFields['status'] = sanitize($data['status']);
         }
 
         $this->policies->update($id, $updateFields);
+
+        // Notify farmer on status change if status changed via update
+        if (isset($updateFields['status']) && $updateFields['status'] !== $oldStatus) {
+            $newStatus = $updateFields['status'];
+            $remarks   = $updateFields['remarks'] ?? '';
+            if ($newStatus === 'pending') {
+                notifyPolicyPending((int)$policy['user_id'], $policy['policy_number'], $remarks);
+            } elseif ($newStatus === 'under_review') {
+                notifyPolicyUnderReview((int)$policy['user_id'], $policy['policy_number'], $remarks);
+            } elseif ($newStatus === 'active') {
+                notifyPolicyApproved((int)$policy['user_id'], $policy['policy_number'], $remarks);
+            } elseif ($newStatus === 'rejected') {
+                notifyPolicyRejected((int)$policy['user_id'], $policy['policy_number'], $remarks);
+            }
+        }
 
         // If farm_location provided by admin, update the farm record too
         if (in_array($auth['role'], ['admin', 'agent']) && !empty($data['farm_location'])) {
@@ -240,14 +258,16 @@ class PolicyController extends BaseController {
         $raw  = $this->body();
         guardSqlInjection($raw);
         $data = sanitizeAll($raw);
+        $remarks = sanitize($data['remarks'] ?? '');
 
         $this->policies->update($id, [
             'status'   => 'under_review',
             'agent_id' => $auth['id'],
-            'remarks'  => sanitize($data['remarks'] ?? ''),
+            'remarks'  => $remarks,
         ]);
 
         $this->audit($auth['id'], 'review_policy', 'policies', "Marked policy #$id as under review");
+        notifyPolicyUnderReview((int)$policy['user_id'], $policy['policy_number'], $remarks);
         sendSuccess($this->policies->getWithDetails($id), 'Policy set to Under Review.');
     }
 
@@ -264,14 +284,15 @@ class PolicyController extends BaseController {
         guardSqlInjection($raw);
         $data = sanitizeAll($raw);
         $this->validateOrFail($data, ['remarks' => 'required']);
+        $remarks = sanitize($data['remarks']);
 
         $this->policies->update($id, [
             'status'  => 'rejected',
-            'remarks' => sanitize($data['remarks']),
+            'remarks' => $remarks,
         ]);
 
         $this->audit($auth['id'], 'reject_policy', 'policies', "Rejected policy #$id");
-        notifyPolicyRejected((int)$policy['user_id'], $policy['policy_number'], $data['remarks']);
+        notifyPolicyRejected((int)$policy['user_id'], $policy['policy_number'], $remarks);
         sendSuccess(null, 'Policy rejected.');
     }
 

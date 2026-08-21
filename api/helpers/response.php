@@ -73,10 +73,10 @@ function sendServerError(string $message = 'Internal server error'): never {
 /**
  * Return paginated JSON response
  */
-function sendPaginated(array $items, int $total, int $page, int $perPage, string $message = 'Success'): never {
+function sendPaginated(array $items, int $total, int $page, int $perPage, string $message = 'Success', array $extra = []): never {
     http_response_code(200);
     header('Content-Type: application/json');
-    echo json_encode([
+    $body = [
         'success'    => true,
         'message'    => $message,
         'data'       => $items,
@@ -86,6 +86,10 @@ function sendPaginated(array $items, int $total, int $page, int $perPage, string
             'current_page' => $page,
             'last_page'    => (int) ceil($total / $perPage),
         ],
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    ];
+    if (!empty($extra)) {
+        $body = array_merge($body, $extra);
+    }
+    echo json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }

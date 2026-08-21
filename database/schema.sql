@@ -201,6 +201,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- TABLE: sms_logs
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sms_logs (
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    recipient     VARCHAR(20) NOT NULL,
+    message       TEXT NOT NULL,
+    status        ENUM('sent', 'failed', 'simulated') NOT NULL DEFAULT 'sent',
+    http_code     INT UNSIGNED DEFAULT NULL,
+    response_body TEXT DEFAULT NULL,
+    error_message VARCHAR(255) DEFAULT NULL,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ============================================================
 -- INDEXES (performance optimization)
 -- ============================================================
 CREATE INDEX idx_policies_user     ON policies(user_id);
@@ -211,3 +225,6 @@ CREATE INDEX idx_payments_user     ON payments(user_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_audit_user        ON audit_logs(user_id);
 CREATE INDEX idx_farms_user        ON farms(user_id);
+CREATE INDEX idx_sms_recipient     ON sms_logs(recipient);
+CREATE INDEX idx_sms_status        ON sms_logs(status);
+CREATE INDEX idx_sms_created_at    ON sms_logs(created_at);

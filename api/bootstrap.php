@@ -23,6 +23,7 @@ require_once __DIR__ . '/helpers/validation.php';
 require_once __DIR__ . '/helpers/jwt.php';
 require_once __DIR__ . '/helpers/upload.php';
 require_once __DIR__ . '/helpers/mailer.php';
+require_once __DIR__ . '/helpers/sms.php';
 require_once __DIR__ . '/helpers/notification.php';
 require_once __DIR__ . '/helpers/security.php';
 

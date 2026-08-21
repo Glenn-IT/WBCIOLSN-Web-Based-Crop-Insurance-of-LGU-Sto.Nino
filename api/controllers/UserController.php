@@ -186,7 +186,7 @@ class UserController extends BaseController {
             'farmer_type' => sanitize($data['farmer_type']  ?? $user['farmer_type']  ?? ''),
         ];
 
-        // Admin can also update role and email
+        // Admin can also update role, email, status, and password
         if ($auth['role'] === 'admin') {
             if (!empty($data['role']) && in_array($data['role'], ['farmer', 'agent'])) {
                 $updateData['role'] = $data['role'];
@@ -197,6 +197,9 @@ class UserController extends BaseController {
                     sendError('Email address is already in use.', 409);
                 }
                 $updateData['email'] = $newEmail;
+            }
+            if (!empty($data['status']) && in_array($data['status'], ['pending', 'active', 'inactive', 'suspended'])) {
+                $updateData['status'] = $data['status'];
             }
             if (!empty($data['password'])) {
                 $updateData['password'] = password_hash($data['password'], PASSWORD_BCRYPT, ['cost' => 12]);

@@ -28,6 +28,12 @@ unset($_rawUploadPath);
 
 define('ALLOWED_TYPES',   explode(',', getenv('ALLOWED_TYPES') ?: 'jpg,jpeg,png,pdf'));
 
+// PhilSMS Gateway Settings
+define('PHILSMS_API_KEY',   getenv('PHILSMS_API_KEY')   ?: getenv('PHILSMS_API_TOKEN') ?: getenv('PHILSMS_TOKEN') ?: '');
+define('PHILSMS_API_URL',   getenv('PHILSMS_API_URL')   ?: 'https://dashboard.philsms.com/api/v3/sms/send');
+define('PHILSMS_SENDER_ID', getenv('PHILSMS_SENDER_ID') ?: 'PhilSMS');
+define('SMS_ENABLED',       getenv('SMS_ENABLED') !== false ? filter_var(getenv('SMS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : true);
+
 // Set timezone
 date_default_timezone_set(APP_TIMEZONE);
 

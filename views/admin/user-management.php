@@ -366,7 +366,14 @@ require_once '../../includes/head.php';
       openModal('user-modal');
     }
 
-    function openEditModal(user) {
+    function getUser(userOrId) {
+      if (typeof userOrId === 'object' && userOrId !== null) return userOrId;
+      return allUsers.find(u => u.id == userOrId) || null;
+    }
+
+    function openEditModal(userOrId) {
+      const user = getUser(userOrId);
+      if (!user) return;
       isEditMode = true;
       document.getElementById('modal-title').textContent    = '✏️ Edit User';
       document.getElementById('save-user-btn').textContent  = '💾 Save Changes';
@@ -438,7 +445,9 @@ require_once '../../includes/head.php';
       }
     }
 
-    function openViewModal(user) {
+    function openViewModal(userOrId) {
+      const user = getUser(userOrId);
+      if (!user) return;
       const first    = user.first_name || '';
       const last     = user.last_name  || '';
       const initials = (first.charAt(0) + last.charAt(0)).toUpperCase() || '??';
@@ -533,8 +542,10 @@ require_once '../../includes/head.php';
         .catch(() => showToast('Error', 'Could not copy to clipboard.', 'error'));
     }
 
-    function confirmDelete(user) {
-      const name = `${user.first_name} ${user.last_name}`.trim();
+    function confirmDelete(userOrId) {
+      const user = getUser(userOrId);
+      if (!user) return;
+      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
       document.getElementById('delete-confirm-msg').textContent = `"${name}" will be deactivated and lose system access.`;
       const btn    = document.getElementById('delete-confirm-btn');
       const newBtn = btn.cloneNode(true);
@@ -560,9 +571,11 @@ require_once '../../includes/head.php';
       openModal('delete-confirm-modal');
     }
 
-    function openStatusModal(user) {
+    function openStatusModal(userOrId) {
+      const user = getUser(userOrId);
+      if (!user) return;
       document.getElementById('status-user-id').value       = user.id;
-      document.getElementById('status-user-name').textContent = `Change status for: ${user.first_name} ${user.last_name}`;
+      document.getElementById('status-user-name').textContent = `Change status for: ${user.first_name || ''} ${user.last_name || ''}`;
       document.getElementById('status-new-value').value     = user.status || 'active';
       openModal('status-modal');
     }
@@ -589,8 +602,10 @@ require_once '../../includes/head.php';
       }
     }
 
-    async function approveUser(user) {
-      const name = `${user.first_name} ${user.last_name}`.trim();
+    async function approveUser(userOrId) {
+      const user = getUser(userOrId);
+      if (!user) return;
+      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
       showLoading();
       try {
         const res = await api('PUT', `/users/${user.id}/status`, { status: 'active' });
@@ -668,16 +683,16 @@ require_once '../../includes/head.php';
             <td>${getStatusBadge(u.status)}</td>
             <td style="white-space:nowrap">${formatDate(u.created_at)}</td>
             <td style="white-space:nowrap">
-              <button class="btn btn-sm btn-outline" title="View Details"  onclick='openViewModal(${JSON.stringify(u)})'>👁️</button>
-              <button class="btn btn-sm btn-primary" title="Edit User"     onclick='openEditModal(${JSON.stringify(u)})'>✏️</button>
+              <button class="btn btn-sm btn-outline" title="View Details"  onclick="openViewModal(${u.id})">👁️</button>
+              <button class="btn btn-sm btn-primary" title="Edit User"     onclick="openEditModal(${u.id})">✏️</button>
               ${u.status === 'pending' ? `
               <button class="btn btn-sm" title="Approve Account"
                 style="background:var(--success);border-color:var(--success);color:white"
-                onclick='approveUser(${JSON.stringify(u)})'>✅ Approve</button>` : `
+                onclick="approveUser(${u.id})">✅ Approve</button>` : `
               <button class="btn btn-sm btn-warning" title="Change Status"
                 style="background:#e67e22;border-color:#e67e22;color:white"
-                onclick='openStatusModal(${JSON.stringify(u)})'>🔄</button>`}
-              <button class="btn btn-sm btn-danger"  title="Deactivate"    onclick='confirmDelete(${JSON.stringify(u)})'>🗑️</button>
+                onclick="openStatusModal(${u.id})">🔄</button>`}
+              <button class="btn btn-sm btn-danger"  title="Deactivate"    onclick="confirmDelete(${u.id})">🗑️</button>
             </td>
           </tr>`;
       }).join('');

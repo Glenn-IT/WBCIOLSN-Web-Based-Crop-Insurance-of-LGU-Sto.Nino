@@ -1,8 +1,8 @@
 <?php
 // ============================================================
 // Notification Service
-// Centralised helper for sending in-app notifications
-// from any controller or model
+// Centralised helper for sending in-app notifications,
+// emails, and SMS from any controller or model
 // ============================================================
 
 /**
@@ -37,7 +37,7 @@ function notify(
             $userStmt->execute([$userId]);
             $user = $userStmt->fetch();
 
-            if ($user) {
+            if ($user && !empty($user['email'])) {
                 $html = emailTemplate($title, "
                     <p>Hi <strong>{$user['first_name']}</strong>,</p>
                     <p>{$message}</p>"
@@ -51,50 +51,154 @@ function notify(
                 @sendMail($user['email'], $title, $html);
             }
         }
-    } catch (Throwable) {
-        // Notification failure must never crash the main request
+    } catch (Throwable $e) {
+        error_log("Notification error: " . $e->getMessage());
     }
 }
 
-// ---- Preset notification helpers ----
+/**
+ * Helper to get user contact info for notifications
+ */
+function getUserNotificationInfo(int $userId): ?array {
+    try {
+        $db = Database::getInstance();
+        $stmt = $db->prepare("SELECT id, first_name, last_name, email, phone FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        return $stmt->fetch() ?: null;
+    } catch (Throwable) {
+        return null;
+    }
+}
 
-function notifyPolicyApproved(int $userId, string $policyNumber): void {
+// ---- Preset policy notification helpers ----
+
+/**
+ * Notify farmer that their policy application has been approved
+ */
+function notifyPolicyApproved(int $userId, string $policyNumber, string $remarks = ''): void {
+    $remarkText = $remarks ? " Remarks: {$remarks}" : '';
     notify($userId,
         'Policy Approved ✅',
-        "Your policy <strong>{$policyNumber}</strong> has been approved and is now active.",
+        "Your policy <strong>{$policyNumber}</strong> has been approved and is now active.{$remarkText}",
         'success',
-        '/web-based-crop-insurance/views/user/my-applications.php',
+        '/views/user/my-applications.php',
         true
     );
+
+    // Send SMS via PhilSMS
+    $user = getUserNotificationInfo($userId);
+    if ($user && !empty($user['phone'])) {
+        $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        sendPolicyDecisionSMS($user['phone'], $name, $policyNumber, 'active', $remarks);
+    }
 }
 
+/**
+ * Notify farmer that their policy application has been rejected
+ */
 function notifyPolicyRejected(int $userId, string $policyNumber, string $reason = ''): void {
+    $reasonText = $reason ? " Reason: {$reason}" : '';
     notify($userId,
-        'Policy Application Rejected',
-        "Your application for policy <strong>{$policyNumber}</strong> was rejected."
-            . ($reason ? " Reason: {$reason}" : ''),
+        'Policy Application Rejected ❌',
+        "Your application for policy <strong>{$policyNumber}</strong> was rejected.{$reasonText}",
         'error',
-        '/web-based-crop-insurance/views/user/my-applications.php',
+        '/views/user/my-applications.php',
         true
     );
+
+    // Send SMS via PhilSMS
+    $user = getUserNotificationInfo($userId);
+    if ($user && !empty($user['phone'])) {
+        $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        sendPolicyDecisionSMS($user['phone'], $name, $policyNumber, 'rejected', $reason);
+    }
 }
 
-function notifyClaimStatusUpdated(int $userId, string $claimNumber, string $status): void {
+/**
+ * Notify farmer that their policy application is under review
+ */
+function notifyPolicyUnderReview(int $userId, string $policyNumber, string $remarks = ''): void {
+    $remarkText = $remarks ? " Remarks: {$remarks}" : '';
+    notify($userId,
+        'Policy Under Review 🔍',
+        "Your policy application <strong>{$policyNumber}</strong> is currently under review by the Municipal Agriculture Office.{$remarkText}",
+        'info',
+        '/views/user/my-applications.php',
+        true
+    );
+
+    // Send SMS via PhilSMS
+    $user = getUserNotificationInfo($userId);
+    if ($user && !empty($user['phone'])) {
+        $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        sendPolicyDecisionSMS($user['phone'], $name, $policyNumber, 'under_review', $remarks);
+    }
+}
+
+/**
+ * Notify farmer that their policy application is set to pending
+ */
+function notifyPolicyPending(int $userId, string $policyNumber, string $remarks = ''): void {
+    $remarkText = $remarks ? " Remarks: {$remarks}" : '';
+    notify($userId,
+        'Policy Set to Pending ⏳',
+        "Your policy application <strong>{$policyNumber}</strong> status is set to pending.{$remarkText}",
+        'warning',
+        '/views/user/my-applications.php',
+        true
+    );
+
+    // Send SMS via PhilSMS
+    $user = getUserNotificationInfo($userId);
+    if ($user && !empty($user['phone'])) {
+        $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        sendPolicyDecisionSMS($user['phone'], $name, $policyNumber, 'pending', $remarks);
+    }
+}
+
+// ---- Preset claim notification helpers ----
+
+/**
+ * Notify farmer on claim status decision (approved, rejected, under_review, paid, submitted)
+ */
+function notifyClaimStatusUpdated(
+    int $userId,
+    string $claimNumber,
+    string $status,
+    float $approvedAmount = 0,
+    string $remarks = ''
+): void {
     $labels = [
-        'under_review' => ['Under Review 🔍', 'info'],
+        'submitted'    => ['Claim Submitted 📩', 'info'],
+        'under_review' => ['Claim Under Review 🔍', 'info'],
         'approved'     => ['Claim Approved ✅', 'success'],
-        'rejected'     => ['Claim Rejected', 'error'],
+        'rejected'     => ['Claim Rejected ❌', 'error'],
         'paid'         => ['Payout Processed 💰', 'success'],
     ];
     [$title, $type] = $labels[$status] ?? ["Claim {$status}", 'info'];
 
+    $extraMessage = '';
+    if ($status === 'approved' && $approvedAmount > 0) {
+        $extraMessage .= " Approved Indemnity Amount: <strong>₱" . number_format($approvedAmount, 2) . "</strong>.";
+    }
+    if ($remarks) {
+        $extraMessage .= " Remarks: {$remarks}";
+    }
+
     notify($userId,
         $title,
-        "Your claim <strong>{$claimNumber}</strong> status has been updated to: <strong>{$status}</strong>.",
+        "Your claim <strong>{$claimNumber}</strong> status has been updated to: <strong>{$status}</strong>.{$extraMessage}",
         $type,
-        '/web-based-crop-insurance/views/user/application-status.php',
+        '/views/user/application-status.php',
         true
     );
+
+    // Send SMS via PhilSMS
+    $user = getUserNotificationInfo($userId);
+    if ($user && !empty($user['phone'])) {
+        $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        sendClaimDecisionSMS($user['phone'], $name, $claimNumber, $status, $approvedAmount, $remarks);
+    }
 }
 
 function notifyPaymentReceived(int $userId, string $reference, float $amount): void {
