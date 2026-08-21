@@ -10,12 +10,12 @@ class UserModel extends BaseModel {
     protected string $table = 'users';
 
     /**
-     * Find user by email (case-sensitive exact match)
+     * Find user by email (case-insensitive match)
      */
     public function findByEmail(string $email): ?array {
         return $this->rawOne(
-            "SELECT * FROM `{$this->table}` WHERE BINARY email = ? LIMIT 1",
-            [$email]
+            "SELECT * FROM `{$this->table}` WHERE LOWER(email) = LOWER(?) LIMIT 1",
+            [trim($email)]
         );
     }
 
@@ -83,10 +83,10 @@ class UserModel extends BaseModel {
     }
 
     /**
-     * Check if email already exists (case-sensitive exact match)
+     * Check if email already exists (case-insensitive match)
      */
     public function emailExists(string $email): bool {
-        return $this->count('BINARY email = ?', [$email]) > 0;
+        return $this->count('LOWER(email) = LOWER(?)', [trim($email)]) > 0;
     }
 
     /**

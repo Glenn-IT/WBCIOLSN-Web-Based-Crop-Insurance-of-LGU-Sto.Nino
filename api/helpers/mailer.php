@@ -87,7 +87,7 @@ function emailTemplate(string $title, string $body): string {
 }
 
 /**
- * Send password reset email.
+ * Send password reset email with token (legacy link support).
  */
 function sendPasswordResetEmail(string $to, string $name, string $token): bool {
     $resetUrl = APP_URL . '/views/user/forgot-password.php?token=' . urlencode($token);
@@ -104,6 +104,25 @@ function sendPasswordResetEmail(string $to, string $name, string $token): bool {
         <p>If you did not request this, please ignore this email.</p>
     ");
     return sendMail($to, 'Password Reset – Crop Insurance System', $body);
+}
+
+/**
+ * Send an OTP code to reset a user's password.
+ */
+function sendPasswordResetOtpEmail(string $to, string $name, string $otp): bool {
+    $body = emailTemplate('Password Reset Verification Code', "
+        <p>Hi <strong>{$name}</strong>,</p>
+        <p>We received a request to reset the password for your Crop Insurance System account. Use the 6-digit verification code below to complete the reset:</p>
+        <p style='text-align:center;margin:24px 0;'>
+          <span style='display:inline-block;background:#e8f5e9;color:#2e7d32;
+            font-size:32px;font-weight:700;letter-spacing:8px;padding:14px 28px;border-radius:8px;border:1px dashed #2e7d32;'>
+            {$otp}
+          </span>
+        </p>
+        <p>This verification code will expire in <strong>10 minutes</strong>.</p>
+        <p>If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+    ");
+    return sendMail($to, 'Password Reset Code – Crop Insurance System', $body);
 }
 
 /**

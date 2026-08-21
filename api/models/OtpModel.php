@@ -15,11 +15,12 @@ class OtpModel extends BaseModel {
      * Returns the plain-text OTP (only ever returned here — only the hash is stored).
      */
     public function create(string $email, string $purpose = 'admin_create_user', int $ttlMinutes = 10): string {
-        $otp = (string) random_int(100000, 999999);
+        $email = strtolower(trim($email));
+        $otp   = (string) random_int(100000, 999999);
 
         // Invalidate any previous unused OTPs for this email/purpose
         $this->db->prepare(
-            "UPDATE `{$this->table}` SET used = 1 WHERE email = ? AND purpose = ? AND used = 0"
+            "UPDATE `{$this->table}` SET used = 1 WHERE LOWER(email) = LOWER(?) AND purpose = ? AND used = 0"
         )->execute([$email, $purpose]);
 
         $this->insert([
@@ -37,9 +38,12 @@ class OtpModel extends BaseModel {
      * Limits to 5 attempts per record before it is invalidated.
      */
     public function verify(string $email, string $otp, string $purpose = 'admin_create_user'): bool {
+        $email = strtolower(trim($email));
+        $otp   = trim($otp);
+
         $record = $this->rawOne(
             "SELECT * FROM `{$this->table}`
-             WHERE email = ? AND purpose = ? AND used = 0 AND expires_at > NOW()
+             WHERE LOWER(email) = LOWER(?) AND purpose = ? AND used = 0 AND expires_at > NOW()
              ORDER BY id DESC LIMIT 1",
             [$email, $purpose]
         );

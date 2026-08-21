@@ -8,15 +8,18 @@
 
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/OtpModel.php';
 require_once __DIR__ . '/../helpers/mailer.php';
 require_once __DIR__ . '/../middleware/RateLimitMiddleware.php';
 
 class AuthController extends BaseController {
 
     private UserModel $users;
+    private OtpModel $otp;
 
     public function __construct() {
         $this->users = new UserModel();
+        $this->otp   = new OtpModel();
     }
 
     // ----------------------------------------------------------
@@ -53,7 +56,7 @@ class AuthController extends BaseController {
         $pwError = validatePasswordStrength($data['password']);
         if ($pwError) sendValidationError(['password' => [$pwError]]);
 
-        $email = trim($data['email']);
+        $email = strtolower(trim($data['email']));
         if ($this->users->emailExists($email)) {
             sendError('This email address is already registered.', 409);
         }
@@ -96,7 +99,8 @@ class AuthController extends BaseController {
             'password' => 'required',
         ]);
 
-        $user = $this->users->findByEmail(trim($data['email']));
+        $email = strtolower(trim($data['email']));
+        $user  = $this->users->findByEmail($email);
 
         if ($user) {
             $lockedSeconds = $this->users->lockedSecondsRemaining($user);
@@ -165,7 +169,7 @@ class AuthController extends BaseController {
 
     // ----------------------------------------------------------
     // POST /api/auth/forgot-password
-    // Step 1: look up the account's security question by email
+    // Step 1: Generate and email a 6-digit OTP for password reset
     // ----------------------------------------------------------
     public function forgotPassword(array $params): void {
         rateLimit(5, 60, 'forgot'); // 5 requests/min per IP
@@ -173,34 +177,99 @@ class AuthController extends BaseController {
         $data = $this->body();
         $this->validateOrFail($data, ['email' => 'required|email']);
 
-        $user = $this->users->findByEmail(trim($data['email']));
+        $email = strtolower(trim($data['email']));
+        $user  = $this->users->findByEmail($email);
 
-        if (!$user || $user['status'] !== 'active' || empty($user['security_question'])) {
+        if (!$user) {
             sendError('No account found with that email address.', 404);
         }
 
-        sendSuccess(['security_question' => $user['security_question']], 'Security question retrieved.');
+        if ($user['status'] === 'pending') {
+            sendError('Your account is pending admin approval. You cannot reset your password yet.', 403);
+        }
+
+        if ($user['status'] !== 'active') {
+            sendError('Your account has been deactivated or suspended. Please contact support.', 403);
+        }
+
+        $otp       = $this->otp->create($email, 'password_reset', 10);
+        $firstName = $user['first_name'] ?: 'Farmer';
+        $sent      = sendPasswordResetOtpEmail($user['email'], $firstName, $otp);
+
+        $this->audit($user['id'], 'request_reset_otp', 'auth', 'Password reset OTP requested.');
+
+        $resData = ['email' => $user['email']];
+        // In development mode, include debug_otp if mailer cannot deliver locally
+        if (defined('APP_ENV') && APP_ENV === 'development' && !$sent) {
+            $resData['debug_otp'] = $otp;
+        }
+
+        sendSuccess($resData, 'A 6-digit verification code has been sent to your email.');
+    }
+
+    // ----------------------------------------------------------
+    // POST /api/auth/verify-otp
+    // Step 2: Verify the 6-digit OTP before allowing password change
+    // ----------------------------------------------------------
+    public function verifyOtp(array $params): void {
+        rateLimit(10, 60, 'forgot'); // 10 attempts/min per IP
+
+        $rawData = $this->body();
+        $data = [
+            'email' => strtolower(trim($rawData['email'] ?? '')),
+            'otp'   => trim($rawData['otp'] ?? ''),
+        ];
+
+        $this->validateOrFail($data, [
+            'email' => 'required|email',
+            'otp'   => 'required|min:6|max:6',
+        ]);
+
+        $user = $this->users->findByEmail($data['email']);
+
+        if (!$user) {
+            sendError('No account found with that email address.', 404);
+        }
+
+        if ($user['status'] !== 'active') {
+            sendError('Your account is not active.', 403);
+        }
+
+        if (!$this->otp->verify($data['email'], $data['otp'], 'password_reset')) {
+            sendError('Invalid or expired verification code. Please check the code or request a new one.', 422);
+        }
+
+        // Generate a secure, temporary reset token (valid for 15 minutes)
+        $resetToken = bin2hex(random_bytes(32));
+        $this->users->setResetToken($user['id'], $resetToken);
+
+        $this->audit($user['id'], 'verify_reset_otp', 'auth', 'Password reset OTP successfully verified.');
+
+        sendSuccess([
+            'reset_token' => $resetToken,
+            'email'       => $user['email'],
+        ], 'Verification code confirmed. You may now enter your new password.');
     }
 
     // ----------------------------------------------------------
     // POST /api/auth/reset-password
-    // Step 2: verify the security answer and set a new password
+    // Step 3: Set new password with the verified reset token
     // ----------------------------------------------------------
     public function resetPassword(array $params): void {
         rateLimit(5, 60, 'forgot'); // shares the forgot-password rate limit bucket
 
         $rawData = $this->body();
         
-        // IMPORTANT: Do NOT sanitize password and answer
+        // IMPORTANT: Do NOT sanitize password
         $data = [
-            'email'    => trim($rawData['email'] ?? ''),
-            'answer'   => $rawData['answer'] ?? '',
-            'password' => $rawData['password'] ?? '',
+            'email'       => strtolower(trim($rawData['email'] ?? '')),
+            'reset_token' => trim($rawData['reset_token'] ?? ''),
+            'otp'         => trim($rawData['otp'] ?? ''),
+            'password'    => $rawData['password'] ?? '',
         ];
 
         $this->validateOrFail($data, [
             'email'    => 'required|email',
-            'answer'   => 'required',
             'password' => 'required|min:8|max:255',
         ]);
 
@@ -210,15 +279,33 @@ class AuthController extends BaseController {
 
         $user = $this->users->findByEmail($data['email']);
 
-        if (!$user || !$this->users->verifySecurityAnswer($user, $data['answer'])) {
-            sendError('Incorrect answer to the security question.', 401);
+        if (!$user) {
+            sendError('No account found with that email address.', 404);
+        }
+
+        if ($user['status'] !== 'active') {
+            sendError('Your account is not active.', 403);
+        }
+
+        // Verify either via reset_token or direct OTP fallback
+        if (!empty($data['reset_token'])) {
+            $userByToken = $this->users->findByResetToken($data['reset_token']);
+            if (!$userByToken || $userByToken['id'] !== $user['id']) {
+                sendError('Reset session has expired or is invalid. Please request a new verification code.', 422);
+            }
+        } elseif (!empty($data['otp'])) {
+            if (!$this->otp->verify($data['email'], $data['otp'], 'password_reset')) {
+                sendError('Invalid or expired verification code. Please check the code or request a new one.', 422);
+            }
+        } else {
+            sendError('Verification code or reset token is required.', 422);
         }
 
         $this->users->resetPassword($user['id'], $data['password']);
         $this->users->clearFailedAttempts($user['id']);
-        $this->audit($user['id'], 'reset_password', 'auth', 'Password was reset via security question.');
+        $this->audit($user['id'], 'reset_password_completed', 'auth', 'Password reset successfully.');
 
-        sendSuccess(null, 'Password reset successfully. You can now log in.');
+        sendSuccess(null, 'Password has been reset successfully. You can now log in.');
     }
 
     // ----------------------------------------------------------

@@ -49,6 +49,7 @@ $router->post('/auth/register',        [AuthController::class, 'register']);
 $router->post('/auth/login',           [AuthController::class, 'login']);
 $router->post('/auth/logout',          [AuthController::class, 'logout']);
 $router->post('/auth/forgot-password',   [AuthController::class, 'forgotPassword']);
+$router->post('/auth/verify-otp',        [AuthController::class, 'verifyOtp']);
 $router->post('/auth/reset-password',    [AuthController::class, 'resetPassword']);
 $router->post('/auth/change-password',   [AuthController::class, 'changePassword']);
 $router->post('/auth/security-question', [AuthController::class, 'setSecurityQuestion']);

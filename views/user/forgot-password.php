@@ -8,43 +8,59 @@ require_once '../../includes/head.php';
     <div class="auth-container" style="max-width:500px">
       <div class="auth-right" style="flex:1;padding:50px 45px">
         <div style="text-align:center;margin-bottom:28px">
-          <div style="font-size:52px;margin-bottom:12px">🔑</div>
+          <div id="page-icon" style="font-size:52px;margin-bottom:12px">🔑</div>
           <h2 id="page-title" style="margin-bottom:6px">Forgot Password?</h2>
-          <p id="page-subtitle" class="auth-subtitle">Enter your email to continue</p>
+          <p id="page-subtitle" class="auth-subtitle">Enter your registered email address to receive a verification code.</p>
         </div>
 
-        <!-- Step 1: Enter email -->
-        <div id="step1">
+        <!-- Step 1: Enter Email -->
+        <form id="step1" onsubmit="event.preventDefault(); requestOtp();">
           <div class="form-group">
             <label class="form-label">Email Address</label>
             <div class="input-group">
               <span class="input-icon">📧</span>
               <input type="email" id="reset-email" class="form-control"
-                placeholder="your@email.com" />
+                placeholder="your@email.com" required autofocus />
             </div>
           </div>
-          <button class="btn-primary-auth" onclick="findAccount()">
-            Continue →
+          <button type="submit" id="btn-send-otp" class="btn-primary-auth">
+            Send Verification Code →
           </button>
-        </div>
+        </form>
 
-        <!-- Step 2: Answer security question -->
-        <div id="step2" style="display:none">
-          <div class="form-group">
-            <label class="form-label" id="security-question-label">Security Question</label>
+        <!-- Step 2: Verify OTP Code -->
+        <form id="step2" style="display:none" onsubmit="event.preventDefault(); verifyOtpCode();">
+          <div class="form-group" style="text-align:center;margin-bottom:20px;">
+            <label class="form-label" style="text-align:left;display:block">6-Digit Verification Code</label>
             <div class="input-group">
-              <span class="input-icon">❓</span>
-              <input type="text" id="security-answer" class="form-control"
-                placeholder="Your answer" />
+              <span class="input-icon">🔢</span>
+              <input type="text" id="reset-otp" class="form-control"
+                placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+                style="font-size:22px;letter-spacing:6px;font-weight:700;text-align:center;"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')" required />
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12.5px;">
+              <span style="color:var(--text-muted)">Didn't receive the code?</span>
+              <button type="button" id="btn-resend-otp" onclick="resendOtp()" 
+                style="background:none;border:none;color:var(--primary,#2e7d32);font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">
+                Resend Code
+              </button>
             </div>
           </div>
-          <button class="btn-primary-auth" onclick="verifyAndShowResetForm()">
-            Verify Answer →
-          </button>
-        </div>
 
-        <!-- Step 3: Set new password -->
-        <div id="step3" style="display:none">
+          <button type="submit" id="btn-verify-otp" class="btn-primary-auth">
+            Verify Code →
+          </button>
+
+          <div style="text-align:center;margin-top:14px">
+            <a class="auth-link" href="javascript:void(0)" onclick="goToStep1()" style="font-size:13px">
+              ← Use a different email
+            </a>
+          </div>
+        </form>
+
+        <!-- Step 3: Set New Password (Shown ONLY after OTP is verified) -->
+        <form id="step3" style="display:none" onsubmit="event.preventDefault(); submitNewPassword();">
           
           <!-- Password Requirements Info -->
           <div style="
@@ -71,7 +87,7 @@ require_once '../../includes/head.php';
             <div class="input-group">
               <span class="input-icon">🔒</span>
               <input type="password" id="new-password" class="form-control"
-                placeholder="Minimum 8 characters"
+                placeholder="Minimum 8 characters" required
                 oninput="checkStrength(this.value)" />
               <span class="input-icon-right"
                 onclick="togglePassword('new-password', this)">👁️</span>
@@ -91,33 +107,37 @@ require_once '../../includes/head.php';
               </div>
             </div>
           </div>
+
           <div class="form-group">
             <label class="form-label">Confirm New Password</label>
             <div class="input-group">
               <span class="input-icon">🔒</span>
               <input type="password" id="confirm-password" class="form-control"
-                placeholder="Re-enter new password" />
+                placeholder="Re-enter new password" required />
+              <span class="input-icon-right"
+                onclick="togglePassword('confirm-password', this)">👁️</span>
             </div>
           </div>
-          <button class="btn-primary-auth" onclick="doReset()">
+
+          <button type="submit" id="btn-save-password" class="btn-primary-auth">
             Set New Password →
           </button>
-        </div>
+        </form>
 
         <!-- Step 4: Reset success -->
         <div id="step4" style="display:none;text-align:center">
           <div style="font-size:48px;margin-bottom:16px">✅</div>
-          <h3 style="margin-bottom:8px;color:var(--primary)">Password Reset!</h3>
+          <h3 style="margin-bottom:8px;color:var(--primary)">Password Reset Complete!</h3>
           <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:24px">
-            Your password has been updated. You can now sign in with your new password.
+            Your password has been successfully updated. You can now sign in with your new password.
           </p>
-          <button class="btn-primary-auth" onclick="logout()">
+          <button class="btn-primary-auth" onclick="window.location.replace('../../index.php')">
             Go to Login →
           </button>
         </div>
 
-        <div style="text-align:center;margin-top:20px">
-          <a class="auth-link" onclick="logout()">← Back to Login</a>
+        <div id="back-to-login-container" style="text-align:center;margin-top:20px">
+          <a class="auth-link" href="../../index.php">← Back to Login</a>
         </div>
       </div>
     </div>
@@ -126,22 +146,125 @@ require_once '../../includes/head.php';
   <?php require_once '../../includes/toast.php'; ?>
   <script>
     let resetEmail = '';
+    let resetToken = '';
+    let resendTimer = null;
+    let resendCountdown = 0;
 
-    async function findAccount() {
+    // STEP 1: Request OTP
+    async function requestOtp() {
       const email = document.getElementById('reset-email').value.trim();
-      if (!email) { showToast('Error', 'Please enter your email.', 'error'); return; }
+      if (!email) {
+        showToast('Error', 'Please enter your email address.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-send-otp');
+      btn.disabled = true;
       showLoading();
+
       try {
         const res = await api('POST', '/auth/forgot-password', { email }, false);
         hideLoading();
+        btn.disabled = false;
+
         if (res.success) {
           resetEmail = email;
-          document.getElementById('security-question-label').textContent = res.data.security_question;
           document.getElementById('step1').style.display = 'none';
           document.getElementById('step2').style.display = 'block';
-          document.getElementById('page-subtitle').textContent = 'Answer your security question to continue.';
+          document.getElementById('step3').style.display = 'none';
+          document.getElementById('step4').style.display = 'none';
+          document.getElementById('back-to-login-container').style.display = 'none';
+          
+          document.getElementById('page-icon').textContent     = '✉️';
+          document.getElementById('page-title').textContent    = 'Enter Verification Code';
+          document.getElementById('page-subtitle').innerHTML   = `We sent a 6-digit code to <strong>${escapeHtml(email)}</strong>.`;
+
+          showToast('Code Sent', res.message || 'Verification code sent to your email.', 'success');
+          
+          // Auto-fill debug OTP in development if returned
+          if (res.data && res.data.debug_otp) {
+            document.getElementById('reset-otp').value = res.data.debug_otp;
+          }
+
+          startResendCountdown(60);
+          document.getElementById('reset-otp').focus();
         } else {
-          showToast('Not Found', res.message || 'No account found with that email.', 'error');
+          showToast('Unable to Proceed', res.message || 'No account found with that email.', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        btn.disabled = false;
+        showToast('Error', 'Could not reach the server. Please check your connection.', 'error');
+      }
+    }
+
+    // STEP 2: Verify OTP
+    async function verifyOtpCode() {
+      const otp = document.getElementById('reset-otp').value.trim();
+      if (!otp || otp.length !== 6) {
+        showToast('Invalid Code', 'Please enter the 6-digit verification code.', 'error');
+        document.getElementById('reset-otp').focus();
+        return;
+      }
+
+      const btn = document.getElementById('btn-verify-otp');
+      btn.disabled = true;
+      showLoading();
+
+      try {
+        const res = await api('POST', '/auth/verify-otp', {
+          email: resetEmail,
+          otp
+        }, false);
+
+        hideLoading();
+        btn.disabled = false;
+
+        if (res.success) {
+          resetToken = res.data?.reset_token || '';
+          clearInterval(resendTimer);
+
+          // Transition to Step 3 (Set New Password)
+          document.getElementById('step2').style.display = 'none';
+          document.getElementById('step3').style.display = 'block';
+          
+          document.getElementById('page-icon').textContent     = '🔒';
+          document.getElementById('page-title').textContent    = 'Set New Password';
+          document.getElementById('page-subtitle').textContent = 'Enter and confirm your new password below.';
+
+          showToast('Code Verified', 'Please enter your new password.', 'success');
+          document.getElementById('new-password').focus();
+        } else {
+          showToast('Verification Failed', res.message || 'Invalid or expired verification code.', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        btn.disabled = false;
+        showToast('Error', 'Could not reach the server.', 'error');
+      }
+    }
+
+    // Resend OTP code
+    async function resendOtp() {
+      if (resendCountdown > 0) return;
+      if (!resetEmail) {
+        goToStep1();
+        return;
+      }
+
+      showLoading();
+      try {
+        const res = await api('POST', '/auth/forgot-password', { email: resetEmail }, false);
+        hideLoading();
+
+        if (res.success) {
+          showToast('Code Resent', 'A new verification code has been sent.', 'success');
+          if (res.data && res.data.debug_otp) {
+            document.getElementById('reset-otp').value = res.data.debug_otp;
+          }
+          startResendCountdown(60);
+        } else {
+          showToast('Error', res.message || 'Could not resend verification code.', 'error');
         }
       } catch (err) {
         hideLoading();
@@ -149,42 +272,92 @@ require_once '../../includes/head.php';
       }
     }
 
-    function verifyAndShowResetForm() {
-      const answer = document.getElementById('security-answer').value.trim();
-      if (!answer) { showToast('Error', 'Please answer the security question.', 'error'); return; }
-      // Actual verification happens server-side together with the password reset.
-      document.getElementById('step2').style.display = 'none';
-      document.getElementById('step3').style.display = 'block';
-      document.getElementById('page-title').textContent    = 'Set New Password';
-      document.getElementById('page-subtitle').textContent = 'Enter and confirm your new password below.';
+    function startResendCountdown(seconds) {
+      clearInterval(resendTimer);
+      resendCountdown = seconds;
+      const resendBtn = document.getElementById('btn-resend-otp');
+      resendBtn.disabled = true;
+      resendBtn.style.opacity = '0.6';
+      resendBtn.style.cursor = 'default';
+      resendBtn.textContent = `Resend code in ${resendCountdown}s`;
+
+      resendTimer = setInterval(() => {
+        resendCountdown--;
+        if (resendCountdown <= 0) {
+          clearInterval(resendTimer);
+          resendBtn.disabled = false;
+          resendBtn.style.opacity = '1';
+          resendBtn.style.cursor = 'pointer';
+          resendBtn.textContent = 'Resend Code';
+        } else {
+          resendBtn.textContent = `Resend code in ${resendCountdown}s`;
+        }
+      }, 1000);
     }
 
-    async function doReset() {
-      const answer  = document.getElementById('security-answer').value.trim();
+    function goToStep1() {
+      clearInterval(resendTimer);
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'none';
+      document.getElementById('step4').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('back-to-login-container').style.display = 'block';
+
+      document.getElementById('page-icon').style.display   = 'block';
+      document.getElementById('page-icon').textContent     = '🔑';
+      document.getElementById('page-title').textContent    = 'Forgot Password?';
+      document.getElementById('page-subtitle').textContent = 'Enter your registered email address to receive a verification code.';
+      document.getElementById('reset-otp').value = '';
+    }
+
+    // STEP 3: Submit New Password
+    async function submitNewPassword() {
       const newPass = document.getElementById('new-password').value;
       const confirm = document.getElementById('confirm-password').value;
-      if (!newPass || !confirm) { showToast('Error', 'Please fill in both password fields.', 'error'); return; }
-      if (newPass !== confirm)  { showToast('Error', 'Passwords do not match.', 'error'); return; }
-      if (newPass.length < 8)   { showToast('Error', 'Password must be at least 8 characters.', 'error'); return; }
+
+      if (!newPass || !confirm) {
+        showToast('Error', 'Please fill in both password fields.', 'error');
+        return;
+      }
+      if (newPass !== confirm) {
+        showToast('Error', 'Passwords do not match.', 'error');
+        return;
+      }
+      if (newPass.length < 8) {
+        showToast('Error', 'Password must be at least 8 characters.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-password');
+      btn.disabled = true;
       showLoading();
+
       try {
-        const res = await api('POST', '/auth/reset-password',
-          { email: resetEmail, answer, password: newPass }, false);
+        const payload = {
+          email: resetEmail,
+          password: newPass
+        };
+        if (resetToken) {
+          payload.reset_token = resetToken;
+        }
+
+        const res = await api('POST', '/auth/reset-password', payload, false);
+
         hideLoading();
+        btn.disabled = false;
+
         if (res.success) {
           document.getElementById('step3').style.display = 'none';
           document.getElementById('step4').style.display = 'block';
-          document.getElementById('page-title').textContent    = 'Success!';
+          document.getElementById('page-icon').style.display   = 'none';
+          document.getElementById('page-title').textContent    = '';
           document.getElementById('page-subtitle').textContent = '';
         } else {
-          showToast('Error', res.message || 'Incorrect answer to the security question.', 'error');
-          // Send back to the security-question step so they can retry.
-          document.getElementById('step3').style.display = 'none';
-          document.getElementById('step2').style.display = 'block';
-          document.getElementById('page-title').textContent    = 'Forgot Password?';
+          showToast('Reset Failed', res.message || 'Failed to update password. Please try again.', 'error');
         }
       } catch (err) {
         hideLoading();
+        btn.disabled = false;
         showToast('Error', 'Could not reach the server.', 'error');
       }
     }
@@ -202,14 +375,21 @@ require_once '../../includes/head.php';
       let score = 0;
       rules.forEach(r => {
         const el = document.getElementById(r.id);
-        el.textContent = (r.ok ? '✅' : '❌') + ' ' + r.label;
-        el.style.color = r.ok ? '#28a745' : '#dc3545';
+        if (el) {
+          el.textContent = (r.ok ? '✅' : '❌') + ' ' + r.label;
+          el.style.color = r.ok ? '#28a745' : '#dc3545';
+        }
         if (r.ok) score++;
       });
       const colors = ['#ddd', '#dc3545', '#fd7e14', '#ffc107', '#28a745'];
       for (let i = 1; i <= 4; i++) {
-        document.getElementById('pw-bar-' + i).style.background = i <= score ? colors[score] : '#ddd';
+        const bar = document.getElementById('pw-bar-' + i);
+        if (bar) bar.style.background = i <= score ? colors[score] : '#ddd';
       }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
   </script>
 </body>
