@@ -15,6 +15,7 @@ Added clear, uniform password requirements information boxes across all password
 ## Design Specification
 
 ### Visual Style
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ ℹ️  Password Requirements                           │
@@ -31,6 +32,7 @@ Added clear, uniform password requirements information boxes across all password
 ```
 
 ### Color Scheme
+
 - **Background**: Light blue gradient (`#e3f2fd` to `#bbdefb`)
 - **Left Border**: Blue accent (`#2196F3`, 4px solid)
 - **Text**: Dark gray (`#424242`)
@@ -40,21 +42,24 @@ Added clear, uniform password requirements information boxes across all password
 - **Icon**: Information emoji (ℹ️)
 
 ### Design Principles
+
 ✅ **Consistent** - Same design across all password forms  
 ✅ **Informative** - Clear requirements with real example  
 ✅ **Non-intrusive** - Compact and well-positioned  
 ✅ **Branded** - Matches system's blue color scheme  
-✅ **Accessible** - High contrast, readable font sizes  
+✅ **Accessible** - High contrast, readable font sizes
 
 ---
 
 ## Implementation Details
 
 ### 1. Profile Page - Change Password
+
 **File**: `views/user/profile.php`  
 **Location**: Below "Current Password" field, before "New Password" field
 
 **Features**:
+
 - Full detailed requirements with bullet points
 - Larger info box (more space available)
 - Example password highlighted in green badge
@@ -65,10 +70,12 @@ Added clear, uniform password requirements information boxes across all password
 ---
 
 ### 2. Signup Page - Registration
+
 **File**: `views/user/signup.php`  
 **Location**: Above password input field
 
 **Features**:
+
 - Condensed format to fit in 2-column layout
 - One-line requirements (8+ chars • Uppercase • Lowercase • Number • Special)
 - Compact but still shows example password
@@ -80,10 +87,12 @@ Added clear, uniform password requirements information boxes across all password
 ---
 
 ### 3. Forgot Password Page - Reset
+
 **File**: `views/user/forgot-password.php`  
 **Location**: Top of Step 3 form, before "New Password" field
 
 **Features**:
+
 - Same condensed format as signup (consistency)
 - Shows in Step 3 when user needs to create new password
 - Works with existing password strength indicator
@@ -96,6 +105,7 @@ Added clear, uniform password requirements information boxes across all password
 ## User Experience Flow
 
 ### Profile - Change Password
+
 ```
 User → Profile Tab
 ↓
@@ -117,6 +127,7 @@ Submit → Success!
 ```
 
 ### Signup - Registration
+
 ```
 User → Signup Page
 ↓
@@ -138,6 +149,7 @@ Complete registration
 ```
 
 ### Forgot Password - Reset
+
 ```
 User → Forgot Password
 ↓
@@ -164,21 +176,24 @@ Password reset successful!
 ## Technical Implementation
 
 ### Common CSS Properties
+
 ```css
 background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-border-left: 4px solid #2196F3;
+border-left: 4px solid #2196f3;
 padding: 10px-16px;
 border-radius: 6px;
 margin-bottom: 16px-20px;
 ```
 
 ### Responsive Behavior
+
 - ✅ Flexbox layout adapts to container width
 - ✅ Text wraps naturally on smaller screens
 - ✅ Icon stays aligned at top
 - ✅ Example code badge inline with text
 
 ### Browser Compatibility
+
 - ✅ Works in all modern browsers (Chrome, Firefox, Safari, Edge)
 - ✅ Gradient backgrounds supported
 - ✅ Emoji icons display correctly
@@ -191,6 +206,7 @@ margin-bottom: 16px-20px;
 The UI now clearly communicates these backend validation rules:
 
 ### 1. **Minimum Length**: 8 characters
+
 ```php
 if (strlen($password) < 8) {
     return 'Password must be at least 8 characters long.';
@@ -198,6 +214,7 @@ if (strlen($password) < 8) {
 ```
 
 ### 2. **Uppercase Letter**: At least one (A-Z)
+
 ```php
 if (!preg_match('/[A-Z]/', $password)) {
     return 'Password must contain at least one uppercase letter.';
@@ -205,6 +222,7 @@ if (!preg_match('/[A-Z]/', $password)) {
 ```
 
 ### 3. **Lowercase Letter**: At least one (a-z)
+
 ```php
 if (!preg_match('/[a-z]/', $password)) {
     return 'Password must contain at least one lowercase letter.';
@@ -212,6 +230,7 @@ if (!preg_match('/[a-z]/', $password)) {
 ```
 
 ### 4. **Number**: At least one (0-9)
+
 ```php
 if (!preg_match('/[0-9]/', $password)) {
     return 'Password must contain at least one number.';
@@ -219,6 +238,7 @@ if (!preg_match('/[0-9]/', $password)) {
 ```
 
 ### 5. **Special Character**: At least one (@, #, !, etc.)
+
 ```php
 if (!preg_match('/[\W_]/', $password)) {
     return 'Password must contain at least one special character (e.g. @, #, !).';
@@ -226,6 +246,7 @@ if (!preg_match('/[\W_]/', $password)) {
 ```
 
 ### Valid Example: `Password@123`
+
 - ✅ Length: 12 characters (8+)
 - ✅ Uppercase: P
 - ✅ Lowercase: assword
@@ -237,6 +258,7 @@ if (!preg_match('/[\W_]/', $password)) {
 ## Benefits
 
 ### For Users
+
 1. **Clear Expectations** - Know requirements before typing
 2. **Fewer Errors** - Create valid password on first try
 3. **Example Given** - See what a valid password looks like
@@ -244,12 +266,14 @@ if (!preg_match('/[\W_]/', $password)) {
 5. **Reduced Frustration** - No trial and error
 
 ### For Admins
+
 1. **Better Data Quality** - Users create stronger passwords
 2. **Fewer Support Requests** - Clear instructions reduce confusion
 3. **Improved Security** - Users understand why requirements exist
 4. **Professional Appearance** - Polished, modern UI
 
 ### For System
+
 1. **Reduced Failed Validations** - Users get it right first time
 2. **Better UX Metrics** - Smoother signup/registration flow
 3. **Accessibility** - Clear, readable information
@@ -260,6 +284,7 @@ if (!preg_match('/[\W_]/', $password)) {
 ## Before vs After
 
 ### Before ❌
+
 ```
 Password: [_________________]
           Min. 8 characters
@@ -274,6 +299,7 @@ Password: [_________________]
 ```
 
 ### After ✅
+
 ```
 ℹ️  Password Requirements
     • 8+ characters
@@ -296,18 +322,21 @@ Password: [_________________]
 ## Accessibility Features
 
 ### Visual
+
 - ✅ High contrast text (WCAG AA compliant)
 - ✅ Readable font sizes (11px-13px)
 - ✅ Clear visual hierarchy
 - ✅ Icon provides visual anchor
 
 ### Cognitive
+
 - ✅ Simple, direct language
 - ✅ Bullet points for scannability
 - ✅ Concrete example provided
 - ✅ Information appears before input
 
 ### Technical
+
 - ✅ Semantic HTML structure
 - ✅ Screen reader friendly text
 - ✅ No JavaScript required
@@ -318,6 +347,7 @@ Password: [_________________]
 ## Testing Checklist
 
 ### Visual Verification
+
 - [ ] Info box appears on Profile page
 - [ ] Info box appears on Signup page
 - [ ] Info box appears on Forgot Password (Step 3)
@@ -327,6 +357,7 @@ Password: [_________________]
 - [ ] Border-left accent is visible
 
 ### Responsive Testing
+
 - [ ] Looks good on desktop (1920px)
 - [ ] Looks good on laptop (1366px)
 - [ ] Looks good on tablet (768px)
@@ -335,6 +366,7 @@ Password: [_________________]
 - [ ] No layout breaking
 
 ### Browser Testing
+
 - [ ] Works in Chrome
 - [ ] Works in Firefox
 - [ ] Works in Safari
@@ -343,6 +375,7 @@ Password: [_________________]
 - [ ] Emoji displays correctly
 
 ### User Flow Testing
+
 - [ ] Sign up → See requirements → Create valid password → Success
 - [ ] Forgot password → Step 3 → See requirements → Reset → Success
 - [ ] Profile → Change password → See requirements → Update → Success
@@ -353,6 +386,7 @@ Password: [_________________]
 ## Future Enhancements (Optional)
 
 ### Possible Additions
+
 1. **Interactive Checklist** - Live check marks as requirements are met
 2. **Password Strength Meter** - Visual bar showing strength
 3. **Common Password Warning** - Detect and warn about common passwords
@@ -365,18 +399,23 @@ Password: [_________________]
 ## Maintenance Notes
 
 ### To Update Requirements Text
+
 Edit the inline HTML in these 3 files:
+
 - `views/user/profile.php` (line ~177-210)
 - `views/user/signup.php` (line ~80-95)
 - `views/user/forgot-password.php` (line ~48-63)
 
 ### To Change Colors
+
 Update these inline CSS properties:
+
 - `background:` - Gradient colors
 - `border-left:` - Accent color
 - `color:` - Text colors
 
 ### To Modify Example Password
+
 Change `Password@123` to your preferred example in all 3 files.
 
 ---
@@ -389,11 +428,11 @@ This enhancement provides a **significant UX improvement** with minimal code cha
 ✅ Faster form completion  
 ✅ Better user satisfaction  
 ✅ Stronger passwords  
-✅ Professional appearance  
+✅ Professional appearance
 
 **Total lines added**: ~60 lines across 3 files  
 **Development time**: ~15 minutes  
-**User impact**: High 🎯  
+**User impact**: High 🎯
 
 ---
 
