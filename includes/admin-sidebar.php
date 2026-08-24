@@ -37,11 +37,23 @@ function adminNavItem(string $page, string $icon, string $label, string $current
     <?= adminNavItem('admin-profile', '👤', 'Admin Profile', $currentPage) ?>
   </nav>
 
+<?php
+$admFirst = $authUser['first_name'] ?? '';
+$admLast  = $authUser['last_name']  ?? '';
+$admFull  = trim("$admFirst $admLast");
+if (!$admFull) {
+    $admFull = $authUser['email'] ?? 'Administrator';
+}
+$admInitials = strtoupper(
+    substr($admFirst ?: 'A', 0, 1) .
+    substr($admLast ?: 'D', 0, 1)
+);
+?>
   <div class="sidebar-footer">
     <div class="user-info-sidebar">
-      <div class="user-avatar" style="background: linear-gradient(135deg, #e74c3c, #c0392b)" id="sidebar-avatar">--</div>
+      <div class="user-avatar" style="background: linear-gradient(135deg, #e74c3c, #c0392b)" id="sidebar-avatar"><?= htmlspecialchars($admInitials) ?></div>
       <div>
-        <div class="user-name-sidebar" id="sidebar-name">Loading...</div>
+        <div class="user-name-sidebar" id="sidebar-name"><?= htmlspecialchars($admFull) ?></div>
         <div class="user-role-sidebar">Administrator</div>
       </div>
     </div>

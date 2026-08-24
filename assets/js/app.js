@@ -290,20 +290,38 @@ function animateCounter(el, target, duration = 1200) {
 }
 
 // ── Initialize Topbar User Info ───────────────────────────
-function initTopbarUser() {
-  const user = getCurrentUser();
+async function initTopbarUser() {
+  let user = getCurrentUser();
   const el = document.getElementById("topbar-user-name");
   const avatarEl = document.getElementById("topbar-avatar");
   const sidebarName = document.getElementById("sidebar-name");
   const sidebarAvatar = document.getElementById("sidebar-avatar");
 
+  // Fallback: If user data is missing in localStorage, load fresh from API
+  if ((!user || !user.first_name) && getToken()) {
+    try {
+      const res = await api("GET", "/auth/me");
+      if (res && res.success && res.data) {
+        user = res.data;
+        localStorage.setItem("lgu_current_user", JSON.stringify(user));
+      }
+    } catch (e) {}
+  }
+
   if (user) {
     const first = user.first_name || user.firstName || "";
     const last = user.last_name || user.lastName || "";
-    const fullName = `${first} ${last}`.trim() || user.email || "User";
-    const initials = (first.charAt(0) + last.charAt(0)).toUpperCase() || "U";
+    const fullName = `${first} ${last}`.trim() || user.email || (user.role === "admin" ? "Administrator" : "Farmer");
+    const initials = (
+      (first.charAt(0) || (user.role === "admin" ? "A" : "F")) +
+      (last.charAt(0) || "")
+    ).toUpperCase();
 
-    if (el) el.textContent = fullName;
+    if (el && (!el.textContent || el.textContent.trim() === "Loading...")) {
+      el.textContent = fullName;
+    } else if (el) {
+      el.textContent = fullName;
+    }
     if (avatarEl) avatarEl.textContent = initials;
     if (sidebarName) sidebarName.textContent = fullName;
     if (sidebarAvatar) sidebarAvatar.textContent = initials;
@@ -311,28 +329,7 @@ function initTopbarUser() {
 }
 
 function initAdminTopbar() {
-  const user = getCurrentUser();
-  const el = document.getElementById("topbar-user-name");
-  const avatarEl = document.getElementById("topbar-avatar");
-  const sidebarName = document.getElementById("sidebar-name");
-  const sidebarAvatar = document.getElementById("sidebar-avatar");
-
-  if (user) {
-    const first = user.first_name || user.firstName || "";
-    const last = user.last_name || user.lastName || "";
-    const fullName = `${first} ${last}`.trim() || user.email || "Admin";
-    const initials = (first.charAt(0) + last.charAt(0)).toUpperCase() || "AL";
-
-    if (el) el.textContent = fullName;
-    if (avatarEl) avatarEl.textContent = initials;
-    if (sidebarName) sidebarName.textContent = fullName;
-    if (sidebarAvatar) sidebarAvatar.textContent = initials;
-  } else {
-    if (el) el.textContent = "Admin LGU";
-    if (avatarEl) avatarEl.textContent = "AL";
-    if (sidebarName) sidebarName.textContent = "Admin LGU";
-    if (sidebarAvatar) sidebarAvatar.textContent = "AL";
-  }
+  initTopbarUser();
 }
 
 // ── Notifications ─────────────────────────────────────────
@@ -487,6 +484,10 @@ window.addEventListener("pageshow", function (e) {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Auto-init user profile in topbar & sidebar
+  if (document.getElementById("topbar-user-name") || document.getElementById("sidebar-name")) {
+    initTopbarUser();
+  }
   // Auto-init counters
   document.querySelectorAll("[data-counter]").forEach((el) => {
     const val = parseFloat(el.dataset.counter);

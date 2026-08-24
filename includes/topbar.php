@@ -11,6 +11,17 @@ $profileHref   = $isAdmin ? 'admin-profile.php' : 'profile.php';
 $avatarStyle   = $isAdmin
     ? 'width:30px;height:30px;font-size:12px;background:linear-gradient(135deg,#1a237e,#283593);'
     : 'width:30px;height:30px;font-size:12px;';
+
+$tbFirst = $authUser['first_name'] ?? '';
+$tbLast  = $authUser['last_name']  ?? '';
+$tbFull  = trim("$tbFirst $tbLast");
+if (!$tbFull) {
+    $tbFull = $authUser['email'] ?? ($isAdmin ? 'Administrator' : 'Farmer');
+}
+$tbInitials = strtoupper(
+    substr($tbFirst ?: ($isAdmin ? 'A' : 'F'), 0, 1) .
+    substr($tbLast ?: '', 0, 1)
+);
 ?>
 <header class="topbar">
   <div class="topbar-left">
@@ -64,9 +75,9 @@ $avatarStyle   = $isAdmin
       "
       onclick="navigateTo('<?= $profileHref ?>')"
     >
-      <div class="user-avatar" id="topbar-avatar" style="<?= $avatarStyle ?>">--</div>
+      <div class="user-avatar" id="topbar-avatar" style="<?= $avatarStyle ?>"><?= htmlspecialchars($tbInitials) ?></div>
       <span id="topbar-user-name" style="font-size:13px;font-weight:600;color:var(--text-primary);">
-        Loading...
+        <?= htmlspecialchars($tbFull) ?>
       </span>
     </div>
   </div>

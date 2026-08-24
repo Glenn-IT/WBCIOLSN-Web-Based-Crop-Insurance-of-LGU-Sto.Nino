@@ -1,7 +1,7 @@
 <?php
 // Set $currentPage before including to highlight the active nav item.
 // Accepted values: 'dashboard', 'new-application', 'my-applications',
-//                  'application-status', 'file-claim', 'profile'
+//                  'application-status', 'file-claim', 'profile', 'about'
 $currentPage = $currentPage ?? '';
 
 function userNavItem(string $page, string $icon, string $label, string $current): string {
@@ -32,16 +32,30 @@ function userNavItem(string $page, string $icon, string $label, string $current)
     <div class="nav-section-label">Claims</div>
     <?= userNavItem('file-claim', '📩', 'File a Claim', $currentPage) ?>
 
-    <div class="nav-section-label">Account</div>
+    <div class="nav-section-label">Account & Info</div>
     <?= userNavItem('profile', '👤', 'My Profile', $currentPage) ?>
+    <?= userNavItem('about',   'ℹ️', 'About System', $currentPage) ?>
   </nav>
 
+<?php
+$sbFirst = $authUser['first_name'] ?? '';
+$sbLast  = $authUser['last_name']  ?? '';
+$sbFull  = trim("$sbFirst $sbLast");
+if (!$sbFull) {
+    $sbFull = $authUser['email'] ?? 'Farmer';
+}
+$sbInitials = strtoupper(
+    substr($sbFirst ?: 'F', 0, 1) .
+    substr($sbLast ?: '', 0, 1)
+);
+$sbRole = !empty($authUser['farmer_type']) ? ucfirst($authUser['farmer_type']) : 'Farmer';
+?>
   <div class="sidebar-footer">
     <div class="user-info-sidebar" onclick="navigateTo('profile.php')">
-      <div class="user-avatar" id="sidebar-avatar">--</div>
+      <div class="user-avatar" id="sidebar-avatar"><?= htmlspecialchars($sbInitials) ?></div>
       <div>
-        <div class="user-name-sidebar" id="sidebar-name">Loading...</div>
-        <div class="user-role-sidebar">Farmer</div>
+        <div class="user-name-sidebar" id="sidebar-name"><?= htmlspecialchars($sbFull) ?></div>
+        <div class="user-role-sidebar"><?= htmlspecialchars($sbRole) ?></div>
       </div>
     </div>
     <button
