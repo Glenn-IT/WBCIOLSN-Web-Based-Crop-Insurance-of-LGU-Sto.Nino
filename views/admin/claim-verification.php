@@ -67,7 +67,7 @@ require_once '../../includes/head.php';
                 <th>App ID</th>
                 <th>Farmer Name</th>
                 <th>Date Filed</th>
-                <th>Date of Loss</th>
+                <th>Date of Damage</th>
                 <th>Cause</th>
                 <th>% Damage</th>
                 <th>Status</th>
@@ -195,7 +195,7 @@ require_once '../../includes/head.php';
               </div>
               <div>
                 <p><strong>Date Filed:</strong> ${formatDate(c.created_at)}</p>
-                <p><strong>Incident Date:</strong> ${formatDate(c.incident_date)}</p>
+                <p><strong>Date of Damage:</strong> ${formatDate(c.incident_date)}</p>
                 <p><strong>Estimated Loss:</strong> ${formatCurrency(c.estimated_loss)}</p>
                 <p><strong>Coverage Amount:</strong> ${formatCurrency(c.coverage_amount)}</p>
                 <p><strong>Approved Amount:</strong> ${formatCurrency(c.approved_amount)}</p>

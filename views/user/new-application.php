@@ -213,7 +213,7 @@ require_once '../../includes/head.php';
             <div class="form-section-title">🌪️ Damage Details</div>
             <div class="form-row form-row-2">
               <div class="form-group">
-                <label class="form-label">Date of Loss *</label>
+                <label class="form-label">Date of Damage *</label>
                 <input type="date" id="dateOfLoss" class="form-control" />
               </div>
               <div class="form-group">

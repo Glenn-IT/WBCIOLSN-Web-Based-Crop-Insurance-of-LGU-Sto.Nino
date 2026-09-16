@@ -230,6 +230,7 @@ require_once '../../includes/head.php';
                     <p style="font-size:18px;font-weight:700;color:var(--success)">${formatCurrency(app.total_premium)}</p></div>
                   <div class="detail-item"><label>% Damage</label><p>${app.percent_damage ? app.percent_damage + '%' : '—'}</p></div>
                   <div class="detail-item"><label>Cause of Damage</label><p>${app.cause_of_damage || '—'}</p></div>
+                  <div class="detail-item"><label>Date of Damage</label><p>${formatDate(app.date_of_loss)}</p></div>
                 </div>
               </div>
               <div class="detail-section"><div class="detail-section-title">Verification Status</div>

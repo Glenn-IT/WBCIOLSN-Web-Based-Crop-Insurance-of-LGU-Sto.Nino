@@ -282,7 +282,7 @@ require_once '../../includes/head.php';
               <div class="form-section-title">🌪️ Damage Details</div>
               <div class="form-row form-row-2">
                 <div class="form-group">
-                  <label class="form-label">Date of Loss *</label>
+                  <label class="form-label">Date of Damage *</label>
                   <input type="date" id="edit-dateOfLoss" class="form-control" />
                 </div>
                 <div class="form-group">
@@ -526,7 +526,7 @@ require_once '../../includes/head.php';
             <div style="grid-column:1/-1">${detailCell('Geo Tag', geoText)}</div>
 
             ${sectionTitle('⚠️', 'Damage Report')}
-            ${detailCell('Date of Loss', formatDate(p.date_of_loss))}
+            ${detailCell('Date of Damage', formatDate(p.date_of_loss))}
             ${detailCell('Cause of Damage', p.cause_of_damage)}
             ${detailCell('Percentage of Damage', p.percent_damage ? p.percent_damage + '%' : '—')}
             ${detailCell('Financial Damage', p.financial_damage ? formatCurrency(p.financial_damage) : '—')}

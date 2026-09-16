@@ -55,7 +55,7 @@ require_once '../../includes/head.php';
                 <input type="date" id="claim-date" class="form-control" />
               </div>
               <div class="form-group">
-                <label class="form-label">Date of Loss *</label>
+                <label class="form-label">Date of Damage *</label>
                 <input type="date" id="claim-loss-date" class="form-control" />
               </div>
             </div>
@@ -279,7 +279,7 @@ require_once '../../includes/head.php';
 
       if (!policyId)      { showToast('Validation', 'Please select an application.', 'error');      return; }
       if (!incidentType)  { showToast('Validation', 'Please select the cause of damage.', 'error'); return; }
-      if (!incidentDate)  { showToast('Validation', 'Please enter the date of loss.', 'error');     return; }
+      if (!incidentDate)  { showToast('Validation', 'Please enter the date of damage.', 'error');   return; }
       if (!damagePercent) { showToast('Validation', 'Please enter the damage percentage.', 'error'); return; }
 
       const policy        = loadedPolicies.find(p => p.id == policyId);
