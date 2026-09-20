@@ -78,3 +78,5 @@ $admInitials = strtoupper(
     </button>
   </div>
 </aside>
+
+<?php require_once __DIR__ . '/logout-modal.php'; ?>

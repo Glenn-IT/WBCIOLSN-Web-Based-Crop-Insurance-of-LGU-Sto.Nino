@@ -80,7 +80,7 @@ header('Pragma: no-cache');
     <h1>Under Construction</h1>
     <p>This feature is not yet available in the current presentation version.
        It will be unlocked in a future release.</p>
-    <button class="btn" onclick="logout()">← Back to Login</button>
+    <button class="btn" onclick="logout(true)">← Back to Login</button>
   </div>
   <script src="/web-based-crop-insurance/assets/js/app.js"></script>
   <script>

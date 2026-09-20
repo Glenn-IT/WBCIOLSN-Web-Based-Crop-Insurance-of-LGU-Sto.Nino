@@ -153,3 +153,5 @@ $sbRole = !empty($authUser['farmer_type']) ? ucfirst($authUser['farmer_type']) :
   }
 </script>
 <?php endif; ?>
+
+<?php require_once __DIR__ . '/logout-modal.php'; ?>
