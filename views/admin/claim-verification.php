@@ -117,7 +117,8 @@ require_once '../../includes/head.php';
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn btn-outline" onclick="printCurrentClaim()"><span class="btn-icon">🖨️</span> Print Claim Slip</button>
         <button class="btn btn-ghost" onclick="closeModal('claim-modal')">Close</button>
       </div>
     </div>
@@ -210,6 +211,7 @@ require_once '../../includes/head.php';
               <strong>📝 Remarks:</strong> ${c.remarks}</div>` : ''}
             ${docsHtml}
           `;
+          currentClaim = c;
         }
         openModal('claim-modal');
       } catch (err) {
@@ -217,6 +219,20 @@ require_once '../../includes/head.php';
         console.error(err);
         showToast('Error', 'Error loading claim.', 'error');
       }
+    }
+
+    let currentClaim = null;
+
+    function printCurrentClaim() {
+      if (!currentClaim) return;
+      const detailHtml = document.getElementById('claim-detail-view')?.innerHTML || '';
+      printGovernmentDocument({
+        title: 'Crop Insurance Claim Verification Record',
+        subtitle: `Claim Reference: ${currentClaim.claim_number || ('CLM-' + currentClaim.id)} • Farmer: ${currentClaim.farmer_name || currentClaim.first_name || 'Farmer'}`,
+        contentHtml: detailHtml,
+        docType: 'Claim Verification Slip',
+        docRef: `WBCI-CLM-${currentClaim.claim_number || currentClaim.id}`
+      });
     }
 
     async function processClaim(action) {

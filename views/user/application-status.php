@@ -32,8 +32,9 @@ require_once '../../includes/head.php';
 
       <!-- ── DETAIL VIEW (shown when ?id= is in URL) ─────────────── -->
       <div id="detail-view" style="display:none">
-        <div style="margin-bottom:16px">
+        <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <button class="btn btn-ghost btn-sm" onclick="navigateTo('application-status.php')">← Back to All Applications</button>
+          <button class="btn btn-outline btn-sm" onclick="printApplicationCertificate()"><span class="btn-icon">🖨️</span> Print Application Slip</button>
         </div>
 
         <!-- Policy header card -->
@@ -225,11 +226,91 @@ require_once '../../includes/head.php';
         }
 
         document.getElementById('timeline-stages').innerHTML = renderTimeline(p);
+        currentPolicyDetail = p;
       } catch (err) {
         hideLoading();
         console.error(err);
         showToast('Error', 'Could not load policy details.', 'error');
       }
+    }
+
+    let currentPolicyDetail = null;
+
+    function printApplicationCertificate() {
+      if (!currentPolicyDetail) return;
+      const p = currentPolicyDetail;
+      const content = `
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <span style="font-size:10px;text-transform:uppercase;color:#64748b">Policy Number</span>
+              <h3 style="margin:2px 0 0 0;font-size:18px;color:#1e3a8a">${p.policy_number || ('APP-' + p.id)}</h3>
+            </div>
+            <div>${getStatusBadge(p.status)}</div>
+          </div>
+          <div style="font-size:12px;color:#334155">
+            <strong>Plan:</strong> ${p.plan_name || 'Standard Plan'} | <strong>Coverage Type:</strong> ${p.coverage_type || 'Crop'}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Farm & Crop Details</div>
+          <div class="detail-grid">
+            <div class="detail-item"><label>Farm Name</label><p>${p.farm_name || '—'}</p></div>
+            <div class="detail-item"><label>Location</label><p>${p.farm_location || p.location || '—'}</p></div>
+            <div class="detail-item"><label>Crop Type</label><p>${p.crop_type || '—'}</p></div>
+            <div class="detail-item"><label>Area Insured</label><p>${p.area_hectares ? p.area_hectares + ' ha' : '—'}</p></div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Coverage & Premium Summary</div>
+          <div class="detail-grid">
+            <div class="detail-item"><label>Total Coverage</label><p style="color:#1b5e20;font-size:14px">${formatCurrency(p.coverage_amount || 0)}</p></div>
+            <div class="detail-item"><label>Total Premium</label><p style="color:#0f172a;font-size:14px">${formatCurrency(p.total_premium || 0)}</p></div>
+            <div class="detail-item"><label>Application Date</label><p>${formatDate(p.created_at)}</p></div>
+            <div class="detail-item"><label>Policy Period</label><p>${p.start_date ? formatDate(p.start_date) + ' to ' + formatDate(p.end_date) : 'Pending activation'}</p></div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Verification & Review Summary</div>
+          <table style="width:100%;margin-top:6px">
+            <thead>
+              <tr>
+                <th>Verification Stage</th>
+                <th>Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Farm Info & Lot Verification</td>
+                <td>${p.farm_verification || 'Pending'}</td>
+                <td>Field verification by agricultural inspector</td>
+              </tr>
+              <tr>
+                <td>Damage / Pre-coverage Assessment</td>
+                <td>${p.damage_verification || 'Passed'}</td>
+                <td>${p.percent_damage ? p.percent_damage + '% damage assessed' : 'Clean pre-coverage evaluation'}</td>
+              </tr>
+              <tr>
+                <td>Coverage Approval</td>
+                <td>${p.coverage_verification || 'Pending'}</td>
+                <td>Municipal Agriculture Office Underwriting</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      printGovernmentDocument({
+        title: 'Certificate of Crop Insurance Application',
+        subtitle: `LGU Sto. Niño Agricultural Registry • Reference: ${p.policy_number || ('APP-' + p.id)}`,
+        contentHtml: content,
+        docType: 'Farmer Insurance Slip',
+        docRef: `WBCI-POL-${p.policy_number || p.id}`
+      });
     }
 
     // ── LIST VIEW ────────────────────────────────────────────────

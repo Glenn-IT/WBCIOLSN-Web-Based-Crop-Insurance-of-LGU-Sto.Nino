@@ -1646,28 +1646,240 @@ textarea.form-control {
 }
 
 /* ============================================================
+   OFFICIAL GOVERNMENT FOOTER (REPORTS & PRINT OUTPUTS)
+   ============================================================ */
+.official-gov-footer {
+  margin-top: 36px;
+  padding-top: 14px;
+  color: #334155;
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.gov-footer-divider {
+  border-top: 3px double #1b5e20;
+  margin-bottom: 14px;
+  opacity: 0.9;
+}
+
+.gov-footer-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.gov-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 300px;
+}
+
+.gov-footer-seal {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.gov-office-title {
+  font-weight: 800;
+  font-size: 13px;
+  color: #0f172a;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.gov-office-sub {
+  font-weight: 600;
+  font-size: 11px;
+  color: #475569;
+}
+
+.gov-office-addr {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.gov-footer-info-grid {
+  display: flex;
+  gap: 24px;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.gov-info-col {
+  min-width: 170px;
+}
+
+.gov-info-heading {
+  font-weight: 700;
+  font-size: 11px;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 2px;
+}
+
+.gov-info-row {
+  font-size: 11px;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.gov-info-row span {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.gov-doc-ref-text {
+  font-family: monospace;
+  font-size: 11px;
+  color: #0f5132;
+  background: #e8f5e9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.gov-footer-notice {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gov-notice-text {
+  font-size: 10.5px;
+  color: #475569;
+  flex: 1 1 450px;
+  line-height: 1.35;
+}
+
+.gov-notice-motto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.gov-republic-text {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
    PRINT STYLES
    ============================================================ */
 @media print {
   .sidebar,
   .topbar,
   .btn,
+  .no-print,
+  .modal-close,
   #toast-container {
     display: none !important;
   }
 
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11px;
+  }
+
+  .app-layout {
+    display: block !important;
+  }
+
   .main-content {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .card {
-    box-shadow: none;
+    box-shadow: none !important;
     border: 1px solid #ddd;
   }
 
   .page-header .btn {
     display: none !important;
+  }
+
+  /* Government Footer Print Styling */
+  .official-gov-footer {
+    display: block !important;
+    page-break-inside: avoid !important;
+    margin-top: 24px !important;
+    padding-top: 10px !important;
+    color: #000 !important;
+  }
+
+  .gov-footer-divider {
+    border-top: 2px solid #000 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .gov-office-title {
+    color: #000 !important;
+    font-size: 11.5px !important;
+  }
+
+  .gov-office-sub,
+  .gov-office-addr,
+  .gov-info-row,
+  .gov-notice-text {
+    color: #000 !important;
+    font-size: 9.5px !important;
+  }
+
+  .gov-info-heading {
+    color: #000 !important;
+    border-bottom: 1px solid #000 !important;
+    font-size: 10px !important;
+  }
+
+  .gov-doc-ref-text {
+    background: transparent !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .gov-footer-notice {
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    padding: 6px 10px !important;
+  }
+
+  .gov-notice-motto {
+    color: #000 !important;
+  }
+
+  .gov-footer-seal {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 }
 

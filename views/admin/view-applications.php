@@ -102,7 +102,8 @@ require_once '../../includes/head.php';
         <button class="modal-close" onclick="closeModal('view-modal')">×</button>
       </div>
       <div class="modal-body" id="view-modal-body"></div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn btn-outline" onclick="printCurrentApp()"><span class="btn-icon">🖨️</span> Print Application Slip</button>
         <button class="btn btn-ghost" onclick="closeModal('view-modal')">Close</button>
       </div>
     </div>
@@ -252,12 +253,27 @@ require_once '../../includes/head.php';
               </div>` : ''}
             </div>
           </div>`;
+        currentViewApp = app;
         openModal('view-modal');
       } catch (err) {
         hideLoading();
         console.error(err);
         showToast('Error', 'Error loading application details.', 'error');
       }
+    }
+
+    let currentViewApp = null;
+
+    function printCurrentApp() {
+      if (!currentViewApp) return;
+      const content = document.getElementById('view-modal-body').innerHTML;
+      printGovernmentDocument({
+        title: 'Crop Insurance Application Record',
+        subtitle: `Policy Reference: ${currentViewApp.policy_number || ('APP-' + currentViewApp.id)} • Farmer: ${currentViewApp.first_name ? currentViewApp.first_name + ' ' + currentViewApp.last_name : 'User #' + currentViewApp.user_id}`,
+        contentHtml: content,
+        docType: 'Official Application Slip',
+        docRef: `WBCI-APP-${currentViewApp.policy_number || currentViewApp.id}`
+      });
     }
 
     loadApps();

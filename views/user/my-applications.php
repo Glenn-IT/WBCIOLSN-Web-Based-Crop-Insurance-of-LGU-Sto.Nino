@@ -107,11 +107,13 @@ require_once '../../includes/head.php';
         <h4>📋 Application Details</h4>
         <button class="modal-close" onclick="closeModal('view-modal')">×</button>
       </div>
-      <div class="modal-body" id="view-modal-body"></div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal('view-modal')">Close</button>
-        <button class="btn btn-primary" id="claim-from-modal-btn"
-          onclick="navigateTo('file-claim.php')">📩 File Claim</button>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-outline" onclick="printMyApplicationModal()"><span class="btn-icon">🖨️</span> Print Application Slip</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="closeModal('view-modal')">Close</button>
+          <button class="btn btn-primary" id="claim-from-modal-btn"
+            onclick="navigateTo('file-claim.php')">📩 File Claim</button>
+        </div>
       </div>
     </div>
   </div>
@@ -558,11 +560,26 @@ require_once '../../includes/head.php';
           claimBtn.style.display = p.status === 'active' ? '' : 'none';
           claimBtn.onclick = () => navigateTo('file-claim.php?policy_id=' + p.id);
         }
+        currentMyPolicy = p;
         openModal('view-modal');
       } catch (err) {
         console.error(err);
         showToast('Error', 'Error loading application details.', 'error');
       }
+    }
+
+    let currentMyPolicy = null;
+
+    function printMyApplicationModal() {
+      if (!currentMyPolicy) return;
+      const content = document.getElementById('view-modal-body').innerHTML;
+      printGovernmentDocument({
+        title: 'Crop Insurance Application Slip',
+        subtitle: `Reference: ${currentMyPolicy.policy_number || ('APP-' + currentMyPolicy.id)} • Farm: ${currentMyPolicy.farm_name || 'Registered Farm'}`,
+        contentHtml: content,
+        docType: 'Official Application Slip',
+        docRef: `WBCI-APP-${currentMyPolicy.policy_number || currentMyPolicy.id}`
+      });
     }
 
     let editCurrentStep   = 1;

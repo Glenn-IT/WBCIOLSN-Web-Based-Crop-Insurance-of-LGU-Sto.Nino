@@ -627,3 +627,168 @@ function getStatusBadge(status) {
   const label = labelMap[s] || status || "—";
   return '<span class="' + cls + '">' + label + "</span>";
 }
+
+/**
+ * Universal Official Government Document Printer
+ * Prints any modal or content block with LGU Sto. Niño letterhead,
+ * signatories, and official government footer.
+ */
+function printGovernmentDocument({
+  title = "Official Document",
+  subtitle = "Municipal Agriculture Office • LGU Sto. Niño, Cagayan",
+  contentHtml = "",
+  docType = "Official Record",
+  docRef = "",
+  signatories = null
+}) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const generatedDate = now.toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const refCode = docRef || `WBCI-DOC-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const currentUser = getCurrentUser();
+  const userText = currentUser
+    ? `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim()
+    : "Authorized Personnel";
+
+  const origin = window.location.origin;
+  const logo1 = origin + "/web-based-crop-insurance/img/Agri-Sto-Logo.png";
+  const logo2 = origin + "/web-based-crop-insurance/img/Municipality-logo.png";
+  const cssPath = origin + "/web-based-crop-insurance/assets/css/style.css";
+
+  let sigHtml = "";
+  if (signatories !== false) {
+    const prepName = (signatories && signatories.preparedByName) || userText || "Department Staff";
+    const prepPos  = (signatories && signatories.preparedByPos)  || "Municipal Agriculturist / Staff";
+    const appName  = (signatories && signatories.approvedByName) || "Hon. Vicente G. Pagurayan";
+    const appPos   = (signatories && signatories.approvedByPos)  || "Municipal Mayor";
+
+    sigHtml = `
+      <div style="display:flex;justify-content:space-between;margin-top:35px;padding-top:15px;page-break-inside:avoid">
+        <div style="flex:1;max-width:280px">
+          <p style="font-size:11px;color:#000;margin-bottom:32px">Prepared / Verified by:</p>
+          <div style="font-size:12px;font-weight:700;color:#000;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:2px;min-width:200px;display:inline-block">${prepName}</div>
+          <div style="font-size:11px;color:#333;margin-top:3px">${prepPos}</div>
+        </div>
+        <div style="flex:1;max-width:280px;text-align:right">
+          <p style="font-size:11px;color:#000;margin-bottom:32px;text-align:left;display:inline-block;min-width:200px">Approved by:</p><br/>
+          <div style="font-size:12px;font-weight:700;color:#000;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:2px;min-width:200px;display:inline-block;text-align:left">${appName}</div>
+          <div style="font-size:11px;color:#333;margin-top:3px;min-width:200px;text-align:left;display:inline-block">${appPos}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const printHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${title} — LGU Sto. Niño</title>
+  <link rel="stylesheet" href="${cssPath}" />
+  <style>
+    @page { size: auto; margin: 12mm 15mm 12mm 15mm; }
+    body { background: #fff !important; color: #000 !important; font-size: 11.5px; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.4; }
+    .print-sheet { max-width: 860px; margin: 0 auto; background: #fff; }
+    .official-report-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; gap: 20px; }
+    .official-logo { width: 75px; height: 75px; object-fit: contain; }
+    .official-text { text-align: center; flex-grow: 1; line-height: 1.35; }
+    .official-text .line { font-size: 13.5px; font-weight: 700; color: #111; margin: 0; }
+    .official-text .report-title { font-size: 16px; font-weight: 800; color: #111; margin-top: 8px; text-transform: uppercase; }
+    .official-divider { border: 0; border-top: 2px solid #222; margin: 10px 0 14px 0; }
+    .report-meta { display: flex; justify-content: space-between; font-size: 11px; color: #444; margin-bottom: 16px; padding-bottom: 6px; border-bottom: 1px dashed #ccc; }
+    .detail-section { margin-bottom: 16px; page-break-inside: avoid; }
+    .detail-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #1b5e20; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-item label { font-size: 10px; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 2px; }
+    .detail-item p { margin: 0; font-size: 12px; font-weight: 600; color: #111; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+    th, td { border: 1px solid #333; padding: 6px 8px; text-align: left; }
+    th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="print-sheet">
+    <div class="official-report-header">
+      <img src="${logo1}" alt="MAO Logo" class="official-logo" />
+      <div class="official-text">
+        <div class="line">Republic of the Philippines</div>
+        <div class="line">Province of Cagayan</div>
+        <div class="line">Municipality of Sto. Niño</div>
+        <div class="report-title">${title}</div>
+        ${subtitle ? `<div style="font-size:11.5px;color:#475569;margin-top:2px">${subtitle}</div>` : ""}
+      </div>
+      <img src="${logo2}" alt="Municipality Logo" class="official-logo" />
+    </div>
+    <hr class="official-divider" />
+    <div class="report-meta">
+      <span><strong>Date Generated:</strong> ${generatedDate}</span>
+      <span><strong>Printed By:</strong> ${userText}</span>
+      <span><strong>Doc Ref:</strong> ${refCode}</span>
+    </div>
+
+    <div class="print-content-body">
+      ${contentHtml}
+    </div>
+
+    ${sigHtml}
+
+    <!-- Official Government Footer -->
+    <div class="official-gov-footer" style="display:block;margin-top:28px;padding-top:10px;page-break-inside:avoid">
+      <div class="gov-footer-divider" style="border-top:2px solid #000;margin-bottom:8px"></div>
+      <div class="gov-footer-body" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:nowrap">
+        <div class="gov-footer-brand" style="display:flex;align-items:center;gap:10px;flex:1">
+          <img src="${logo1}" alt="Seal" class="gov-footer-seal" style="width:38px;height:38px;object-fit:contain" />
+          <div class="gov-footer-brand-text">
+            <div class="gov-office-title" style="font-size:11.5px;font-weight:800;color:#000">MUNICIPAL AGRICULTURE OFFICE</div>
+            <div class="gov-office-sub" style="font-size:9.5px;color:#333">Local Government Unit of Sto. Niño • Province of Cagayan</div>
+            <div class="gov-office-addr" style="font-size:9px;color:#555">📍 Municipal Hall Compound, Centro Norte, Sto. Niño (Faire), Cagayan 3525</div>
+          </div>
+        </div>
+        <div class="gov-footer-info-grid" style="display:flex;gap:20px;font-size:9.5px;color:#222">
+          <div>
+            <div style="font-weight:700;font-size:9.5px;border-bottom:1px solid #333;margin-bottom:2px">Official Contact</div>
+            <div>Email: agriculture@stonino-cagayan.gov.ph</div>
+            <div>Hotline: (078) 377-2001 / +63 917 123 4567</div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:9.5px;border-bottom:1px solid #333;margin-bottom:2px">Document Control</div>
+            <div>System: WBCI-OLSN v1.0</div>
+            <div>Doc Ref: <strong>${refCode}</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="gov-footer-notice" style="background:#fff;border:1px solid #333;padding:5px 8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:9px">
+        <div style="color:#222;font-style:italic">
+          ⚖️ Official System-Generated Document — LGU Sto. Niño, Cagayan. Valid only with authorized signature(s) and municipal seal.
+        </div>
+        <div style="font-weight:700;color:#000;text-transform:uppercase">
+          ★ Republika ng Pilipinas ★
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 250);
+    };
+  <\/script>
+</body>
+</html>`;
+
+  const printWin = window.open("", "_blank", "width=920,height=750");
+  if (printWin) {
+    printWin.document.open();
+    printWin.document.write(printHtml);
+    printWin.document.close();
+  } else {
+    alert("Please allow popups to open the official printable document.");
+  }
+}
+

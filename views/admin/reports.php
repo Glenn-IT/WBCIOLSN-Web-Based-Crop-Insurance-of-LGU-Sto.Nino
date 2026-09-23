@@ -255,6 +255,11 @@ require_once '../../includes/head.php';
       color: #333 !important;
       margin-top: 3px !important;
     }
+    .official-gov-footer {
+      display: block !important;
+      page-break-inside: avoid !important;
+      margin-top: 28px !important;
+    }
   }
 </style>
 <body>
@@ -439,6 +444,12 @@ require_once '../../includes/head.php';
             <div class="signatory-position" id="sig-approved-position">Municipal Mayor</div>
           </div>
         </div>
+
+        <!-- Official Government Footer -->
+        <?php
+        $govDocType = 'Official Crop Insurance Summary Report';
+        require_once '../../includes/print-footer.php';
+        ?>
       </div>
     </main>
   </div>
@@ -448,9 +459,15 @@ require_once '../../includes/head.php';
     initTopbarUser();
 
     // Set generated date & user
-    document.getElementById('gen-date').textContent = new Date().toLocaleString('en-US', {
+    const reportNow = new Date();
+    document.getElementById('gen-date').textContent = reportNow.toLocaleString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+
+    // Set dynamic government doc ref
+    const padNum = (n) => String(n).padStart(2, '0');
+    const autoDocRef = `WBCI-REP-${reportNow.getFullYear()}${padNum(reportNow.getMonth() + 1)}${padNum(reportNow.getDate())}-${padNum(reportNow.getHours())}${padNum(reportNow.getMinutes())}`;
+    document.querySelectorAll('.gov-doc-ref-text').forEach(el => el.textContent = autoDocRef);
 
     const currentUser = getCurrentUser();
     if (currentUser) {
