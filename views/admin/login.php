@@ -45,7 +45,13 @@ require_once '../../includes/head.php';
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Password</label>
+            <label class="form-label" style="display:flex;justify-content:space-between">
+              Password
+              <a class="auth-link" style="font-weight:500;font-size:13px;color:#1a237e"
+                onclick="navigateTo('forgot-password.php')">
+                Forgot password?
+              </a>
+            </label>
             <div class="input-group">
               <span class="input-icon">🔒</span>
               <input type="password" id="admin-password" class="form-control"

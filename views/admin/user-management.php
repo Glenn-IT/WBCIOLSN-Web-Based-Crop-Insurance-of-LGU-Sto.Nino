@@ -361,6 +361,7 @@ require_once '../../includes/head.php';
       document.getElementById('field-status').value         = 'active';
       document.getElementById('otp-row').style.display      = 'flex';
       document.getElementById('password-row').style.display = 'none';
+      document.getElementById('send-otp-btn').style.display = 'inline-block';
       document.getElementById('field-email').disabled        = false;
       resetOtpButton();
       openModal('user-modal');
@@ -393,6 +394,7 @@ require_once '../../includes/head.php';
       document.getElementById('confirm-required').style.display  = 'none';
       document.getElementById('otp-row').style.display      = 'none';
       document.getElementById('password-row').style.display = 'flex';
+      document.getElementById('send-otp-btn').style.display = 'none';
       openModal('user-modal');
     }
 

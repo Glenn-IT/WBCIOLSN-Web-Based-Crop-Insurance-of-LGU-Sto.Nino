@@ -1,29 +1,35 @@
 <?php
-$pageTitle = 'Forgot Password — LGU Sto. Niño Crop Insurance';
+$pageTitle = 'Admin Password Recovery — LGU Sto. Niño Crop Insurance';
 $basePath  = '../../';
 require_once '../../includes/head.php';
 ?>
 <body>
-  <div class="auth-page">
+  <div class="auth-page"
+    style="background:linear-gradient(135deg,#1a237e 0%,#283593 40%,#1a6b3c 100%)">
     <div class="auth-container" style="max-width:500px">
       <div class="auth-right" style="flex:1;padding:50px 45px">
         <div style="text-align:center;margin-bottom:28px">
-          <div id="page-icon" style="font-size:52px;margin-bottom:12px">🔑</div>
-          <h2 id="page-title" style="margin-bottom:6px">Forgot Password?</h2>
-          <p id="page-subtitle" class="auth-subtitle">Enter your registered email address to receive a verification code.</p>
+          <div id="page-icon-box" style="width:60px;height:60px;background:linear-gradient(135deg,#1a237e,#283593);
+            border-radius:14px;display:flex;align-items:center;justify-content:center;
+            font-size:26px;margin:0 auto 16px">
+            <span id="page-icon">🛡️</span>
+          </div>
+          <h2 id="page-title" style="margin-bottom:6px">Admin Password Recovery</h2>
+          <p id="page-subtitle" class="auth-subtitle">Enter your registered admin email address to receive a verification code.</p>
         </div>
 
         <!-- Step 1: Enter Email -->
         <form id="step1" onsubmit="event.preventDefault(); requestOtp();">
           <div class="form-group">
-            <label class="form-label">Email Address</label>
+            <label class="form-label">Admin Email Address</label>
             <div class="input-group">
               <span class="input-icon">📧</span>
               <input type="email" id="reset-email" class="form-control"
-                placeholder="your@email.com" required autofocus />
+                placeholder="admin@lgu-stonino.gov.ph" required autofocus />
             </div>
           </div>
-          <button type="submit" id="btn-send-otp" class="btn-primary-auth">
+          <button type="submit" id="btn-send-otp" class="btn-primary-auth"
+            style="background:linear-gradient(135deg,#1a237e,#283593)">
             Send Verification Code →
           </button>
         </form>
@@ -42,18 +48,19 @@ require_once '../../includes/head.php';
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12.5px;">
               <span style="color:var(--text-muted)">Didn't receive the code?</span>
               <button type="button" id="btn-resend-otp" onclick="resendOtp()" 
-                style="background:none;border:none;color:var(--primary,#2e7d32);font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">
+                style="background:none;border:none;color:#1a237e;font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">
                 Resend Code
               </button>
             </div>
           </div>
 
-          <button type="submit" id="btn-verify-otp" class="btn-primary-auth">
+          <button type="submit" id="btn-verify-otp" class="btn-primary-auth"
+            style="background:linear-gradient(135deg,#1a237e,#283593)">
             Verify Code →
           </button>
 
           <div style="text-align:center;margin-top:14px">
-            <a class="auth-link" href="javascript:void(0)" onclick="goToStep1()" style="font-size:13px">
+            <a class="auth-link" href="javascript:void(0)" onclick="goToStep1()" style="font-size:13px;color:#1a237e">
               ← Use a different email
             </a>
           </div>
@@ -64,8 +71,8 @@ require_once '../../includes/head.php';
           
           <!-- Password Requirements Info -->
           <div style="
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border-left: 4px solid #2196F3;
+            background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%);
+            border-left: 4px solid #1a237e;
             padding: 10px 12px;
             border-radius: 6px;
             margin-bottom: 16px;
@@ -73,11 +80,11 @@ require_once '../../includes/head.php';
           ">
             <div style="display: flex; align-items: start; gap: 8px;">
               <span style="font-size: 16px;">ℹ️</span>
-              <div style="flex: 1; color: #424242; line-height: 1.5;">
-                <strong style="color: #1976d2; display: block; margin-bottom: 3px;">Password must contain:</strong>
+              <div style="flex: 1; color: #283593; line-height: 1.5;">
+                <strong style="color: #1a237e; display: block; margin-bottom: 3px;">Password must contain:</strong>
                 8+ chars • Uppercase • Lowercase • Number • Special (@#!)
-                <br><strong style="color: #2e7d32;">Example:</strong> 
-                <code style="background: rgba(46,125,50,0.1); padding: 1px 4px; border-radius: 2px; font-weight: 600; color: #2e7d32;">Password@123</code>
+                <br><strong style="color: #1a237e;">Example:</strong> 
+                <code style="background: rgba(26,35,126,0.1); padding: 1px 4px; border-radius: 2px; font-weight: 600; color: #1a237e;">AdminPass@2024</code>
               </div>
             </div>
           </div>
@@ -119,7 +126,8 @@ require_once '../../includes/head.php';
             </div>
           </div>
 
-          <button type="submit" id="btn-save-password" class="btn-primary-auth">
+          <button type="submit" id="btn-save-password" class="btn-primary-auth"
+            style="background:linear-gradient(135deg,#1a237e,#283593)">
             Set New Password →
           </button>
         </form>
@@ -127,17 +135,19 @@ require_once '../../includes/head.php';
         <!-- Step 4: Reset success -->
         <div id="step4" style="display:none;text-align:center">
           <div style="font-size:48px;margin-bottom:16px">✅</div>
-          <h3 style="margin-bottom:8px;color:var(--primary)">Password Reset Complete!</h3>
+          <h3 style="margin-bottom:8px;color:#1a237e">Password Reset Complete!</h3>
           <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:24px">
-            Your password has been successfully updated. You can now sign in with your new password.
+            Your administrator password has been successfully updated. You can now sign in with your new password.
           </p>
-          <button class="btn-primary-auth" onclick="window.location.replace('../../index.php')">
-            Go to Login →
+          <button class="btn-primary-auth"
+            style="background:linear-gradient(135deg,#1a237e,#283593)"
+            onclick="window.location.replace('login.php')">
+            Go to Admin Login →
           </button>
         </div>
 
         <div id="back-to-login-container" style="text-align:center;margin-top:20px">
-          <a class="auth-link" href="../../index.php">← Back to Login</a>
+          <a class="auth-link" href="login.php" style="font-size:13px;color:#1a237e">← Back to Admin Login</a>
         </div>
       </div>
     </div>
@@ -154,7 +164,7 @@ require_once '../../includes/head.php';
     async function requestOtp() {
       const email = document.getElementById('reset-email').value.trim();
       if (!email) {
-        showToast('Error', 'Please enter your email address.', 'error');
+        showToast('Error', 'Please enter your admin email address.', 'error');
         return;
       }
 
@@ -163,7 +173,7 @@ require_once '../../includes/head.php';
       showLoading();
 
       try {
-        const res = await api('POST', '/auth/forgot-password', { email }, false);
+        const res = await api('POST', '/auth/forgot-password', { email, portal: 'admin' }, false);
         hideLoading();
         btn.disabled = false;
 
@@ -183,7 +193,7 @@ require_once '../../includes/head.php';
           startResendCountdown(60);
           document.getElementById('reset-otp').focus();
         } else {
-          showToast('Unable to Proceed', res.message || 'No account found with that email.', 'error');
+          showToast('Unable to Proceed', res.message || 'No administrator account found with that email.', 'error');
         }
       } catch (err) {
         hideLoading();
@@ -208,7 +218,8 @@ require_once '../../includes/head.php';
       try {
         const res = await api('POST', '/auth/verify-otp', {
           email: resetEmail,
-          otp
+          otp,
+          portal: 'admin'
         }, false);
 
         hideLoading();
@@ -224,7 +235,7 @@ require_once '../../includes/head.php';
           
           document.getElementById('page-icon').textContent     = '🔒';
           document.getElementById('page-title').textContent    = 'Set New Password';
-          document.getElementById('page-subtitle').textContent = 'Enter and confirm your new password below.';
+          document.getElementById('page-subtitle').textContent = 'Enter and confirm your new administrator password.';
 
           showToast('Code Verified', 'Please enter your new password.', 'success');
           document.getElementById('new-password').focus();
@@ -248,7 +259,7 @@ require_once '../../includes/head.php';
 
       showLoading();
       try {
-        const res = await api('POST', '/auth/forgot-password', { email: resetEmail }, false);
+        const res = await api('POST', '/auth/forgot-password', { email: resetEmail, portal: 'admin' }, false);
         hideLoading();
 
         if (res.success) {
@@ -294,10 +305,10 @@ require_once '../../includes/head.php';
       document.getElementById('step1').style.display = 'block';
       document.getElementById('back-to-login-container').style.display = 'block';
 
-      document.getElementById('page-icon').style.display   = 'block';
-      document.getElementById('page-icon').textContent     = '🔑';
-      document.getElementById('page-title').textContent    = 'Forgot Password?';
-      document.getElementById('page-subtitle').textContent = 'Enter your registered email address to receive a verification code.';
+      document.getElementById('page-icon-box').style.display = 'flex';
+      document.getElementById('page-icon').textContent     = '🛡️';
+      document.getElementById('page-title').textContent    = 'Admin Password Recovery';
+      document.getElementById('page-subtitle').textContent = 'Enter your registered admin email address to receive a verification code.';
       document.getElementById('reset-otp').value = '';
     }
 
@@ -326,7 +337,8 @@ require_once '../../includes/head.php';
       try {
         const payload = {
           email: resetEmail,
-          password: newPass
+          password: newPass,
+          portal: 'admin'
         };
         if (resetToken) {
           payload.reset_token = resetToken;
@@ -340,7 +352,7 @@ require_once '../../includes/head.php';
         if (res.success) {
           document.getElementById('step3').style.display = 'none';
           document.getElementById('step4').style.display = 'block';
-          document.getElementById('page-icon').style.display   = 'none';
+          document.getElementById('page-icon-box').style.display = 'none';
           document.getElementById('page-title').textContent    = '';
           document.getElementById('page-subtitle').textContent = '';
         } else {

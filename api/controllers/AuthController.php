@@ -184,6 +184,11 @@ class AuthController extends BaseController {
             sendError('No account found with that email address.', 404);
         }
 
+        $portal = $data['portal'] ?? '';
+        if ($portal === 'admin' && !in_array($user['role'], ['admin', 'agent'], true)) {
+            sendError('No administrator account found with that email address.', 404);
+        }
+
         if ($user['status'] === 'pending') {
             sendError('Your account is pending admin approval. You cannot reset your password yet.', 403);
         }
@@ -193,18 +198,17 @@ class AuthController extends BaseController {
         }
 
         $otp       = $this->otp->create($email, 'password_reset', 10);
-        $firstName = $user['first_name'] ?: 'Farmer';
+        $firstName = $user['first_name'] ?: (in_array($user['role'], ['admin', 'agent'], true) ? 'Administrator' : 'Farmer');
         $sent      = sendPasswordResetOtpEmail($user['email'], $firstName, $otp);
+
+        if (!$sent) {
+            error_log("Failed to send password reset OTP to {$user['email']}");
+            sendError('Failed to send verification email. Please verify your Gmail SMTP credentials in .env.', 502);
+        }
 
         $this->audit($user['id'], 'request_reset_otp', 'auth', 'Password reset OTP requested.');
 
-        $resData = ['email' => $user['email']];
-        // In development mode, include debug_otp if mailer cannot deliver locally
-        if (defined('APP_ENV') && APP_ENV === 'development' && !$sent) {
-            $resData['debug_otp'] = $otp;
-        }
-
-        sendSuccess($resData, 'A 6-digit verification code has been sent to your email.');
+        sendSuccess(['email' => $user['email']], 'A 6-digit verification code has been sent to your email.');
     }
 
     // ----------------------------------------------------------
@@ -229,6 +233,11 @@ class AuthController extends BaseController {
 
         if (!$user) {
             sendError('No account found with that email address.', 404);
+        }
+
+        $portal = $rawData['portal'] ?? '';
+        if ($portal === 'admin' && !in_array($user['role'], ['admin', 'agent'], true)) {
+            sendError('Access denied.', 403);
         }
 
         if ($user['status'] !== 'active') {
@@ -281,6 +290,11 @@ class AuthController extends BaseController {
 
         if (!$user) {
             sendError('No account found with that email address.', 404);
+        }
+
+        $portal = $rawData['portal'] ?? '';
+        if ($portal === 'admin' && !in_array($user['role'], ['admin', 'agent'], true)) {
+            sendError('Access denied.', 403);
         }
 
         if ($user['status'] !== 'active') {

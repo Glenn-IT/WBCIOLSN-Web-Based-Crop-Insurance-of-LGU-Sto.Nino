@@ -256,9 +256,18 @@ $initials  = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)) ?: '
 
     async function saveProfile() {
       const get  = id => document.getElementById(id)?.value?.trim() || '';
-      const data = { first_name: get('edit-fname'), last_name: get('edit-lname'), phone: get('edit-phone') };
+      const data = {
+        first_name: get('edit-fname'),
+        last_name:  get('edit-lname'),
+        email:      get('edit-email'),
+        phone:      get('edit-phone')
+      };
       if (!data.first_name || !data.last_name) {
         showToast('Required', 'First name and last name are required.', 'error');
+        return;
+      }
+      if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        showToast('Invalid', 'A valid email address is required.', 'error');
         return;
       }
       if (data.phone && !/^\d{11}$/.test(data.phone)) {
@@ -271,7 +280,15 @@ $initials  = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)) ?: '
         hideLoading();
         if (res.success) {
           const meRes = await api('GET', '/auth/me');
-          if (meRes.success) populateProfile(meRes.data);
+          if (meRes.success) {
+            populateProfile(meRes.data);
+            const token = getToken();
+            if (token) {
+              setSession(meRes.data, token);
+            } else {
+              localStorage.setItem('lgu_current_user', JSON.stringify(meRes.data));
+            }
+          }
           initTopbarUser();
           showToast('Saved', 'Profile updated successfully.', 'success');
         } else {

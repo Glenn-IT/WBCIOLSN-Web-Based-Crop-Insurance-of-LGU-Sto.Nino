@@ -9,6 +9,9 @@ $basePath  = '../../';
 $guardRole = 'admin';
 require_once '../../includes/auth-guard.php';
 
+require_once '../../api/config/env.php';
+loadEnv(__DIR__ . '/../../.env');
+
 require_once '../../vendor/autoload.php';
 require_once '../../api/helpers/mailer.php';
 
