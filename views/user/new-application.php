@@ -400,8 +400,8 @@ require_once '../../includes/head.php';
       }
       mapInitialized = true;
 
-      // Default center: Sto. Niño, South Cotabato, Philippines
-      farmMap = L.map('farm-map').setView([6.4573, 124.8340], 13);
+      // Default center: Sto. Niño, Cagayan, Philippines
+      farmMap = L.map('farm-map').setView([17.883247, 121.568922], 13);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

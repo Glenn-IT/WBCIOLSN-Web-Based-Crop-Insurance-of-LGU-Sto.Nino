@@ -49,6 +49,7 @@ class PolicyController extends BaseController {
         $policy = $this->policies->getWithDetails($id);
         if (!$policy) sendNotFound('Policy not found.');
         requireOwnerOrAdmin($auth, (int)$policy['user_id']);
+        $policy['documents'] = $this->policies->getDocuments($id);
         sendSuccess($policy);
     }
 

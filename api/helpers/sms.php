@@ -160,11 +160,19 @@ function sendPhilSMS(string $recipient, string $message): array {
         return $result;
     }
 
+    // Sanitize known anti-smishing keywords flagged by Philippine telco and PhilSMS spam filters
+    $cleanMessage = str_replace('₱', 'PHP ', $message);
+    $cleanMessage = preg_replace('/\bplease check your account\.?/i', 'Thank you.', $cleanMessage);
+    $cleanMessage = preg_replace('/\bcheck your account\.?/i', 'check the WBCIOLSN portal.', $cleanMessage);
+    $cleanMessage = preg_replace('/\bmonitor your account\b/i', 'monitor the WBCIOLSN portal', $cleanMessage);
+    $cleanMessage = preg_replace('/\byour account\b/i', 'your portal records', $cleanMessage);
+    $cleanMessage = preg_replace('/\baccount\b/i', 'portal', $cleanMessage);
+
     $payload = [
         'recipient' => $phone,
         'sender_id' => $senderId,
         'type'      => 'plain',
-        'message'   => $message,
+        'message'   => $cleanMessage,
     ];
 
     if (!function_exists('curl_init')) {
@@ -223,7 +231,7 @@ function sendPhilSMS(string $recipient, string $message): array {
             'message'   => $errMsg,
             'response'  => $data,
         ];
-        logSmsToDb($phone, $message, 'failed', $httpCode, $data ?: $rawResponse, $errMsg);
+        logSmsToDb($phone, $cleanMessage, 'failed', $httpCode, $data ?: $rawResponse, $errMsg);
         return $result;
     }
 
@@ -233,7 +241,7 @@ function sendPhilSMS(string $recipient, string $message): array {
         'message'   => 'SMS sent successfully.',
         'response'  => $data,
     ];
-    logSmsToDb($phone, $message, 'sent', $httpCode, $data ?: $rawResponse, null);
+    logSmsToDb($phone, $cleanMessage, 'sent', $httpCode, $data ?: $rawResponse, null);
     return $result;
 }
 
@@ -283,7 +291,7 @@ function sendPolicyDecisionSMS(
         case 'pending':
         default:
             $noteText = $remarks ? " Note: {$remarks}." : "";
-            $msg = "Dear {$name}, your Crop Insurance application ({$policyNumber}) status has been set to PENDING.{$noteText} Please monitor your account for updates. - Sto. Nino Crop Insurance";
+            $msg = "Dear {$name}, your Crop Insurance application ({$policyNumber}) status has been set to PENDING.{$noteText} Thank you! - Sto. Nino Crop Insurance";
             break;
     }
 
@@ -314,29 +322,29 @@ function sendClaimDecisionSMS(
 
     switch ($statusLower) {
         case 'approved':
-            $amountText = $approvedAmount > 0 ? " for indemnity of ₱" . number_format($approvedAmount, 2) : "";
+            $amountText = $approvedAmount > 0 ? " for indemnity of PHP " . number_format($approvedAmount, 2) : "";
             $noteText = $remarks ? " Note: {$remarks}." : "";
-            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) has been APPROVED{$amountText}.{$noteText} Please check your account. - Sto. Nino Crop Insurance";
+            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) has been APPROVED{$amountText}.{$noteText} Thank you! - Sto. Nino Crop Insurance";
             break;
 
         case 'rejected':
             $reasonText = $remarks ? " Reason: {$remarks}." : "";
-            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) was REJECTED.{$reasonText} Please contact the Municipal Agriculture Office for details. - Sto. Nino Crop Insurance";
+            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) was REJECTED.{$reasonText} Please visit the Municipal Agriculture Office for details. - Sto. Nino Crop Insurance";
             break;
 
         case 'under_review':
             $noteText = $remarks ? " Note: {$remarks}." : "";
-            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) is now UNDER REVIEW by the Municipal Agriculture Office.{$noteText} - Sto. Nino Crop Insurance";
+            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) is now UNDER REVIEW by the Municipal Agriculture Office.{$noteText} We will update you once processed. - Sto. Nino Crop Insurance";
             break;
 
         case 'paid':
-            $amountText = $approvedAmount > 0 ? " of ₱" . number_format($approvedAmount, 2) : "";
-            $msg = "Dear {$name}, your Claim ({$claimNumber}) indemnity payout{$amountText} has been PROCESSED. Reference: " . ($remarks ?: 'Released') . " - Sto. Nino Crop Insurance";
+            $amountText = $approvedAmount > 0 ? " of PHP " . number_format($approvedAmount, 2) : "";
+            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) indemnity payout{$amountText} has been PROCESSED. Reference: " . ($remarks ?: 'Released') . " - Sto. Nino Crop Insurance";
             break;
 
         default:
             $noteText = $remarks ? " Note: {$remarks}." : "";
-            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) status has been updated to {$status}.{$noteText} - Sto. Nino Crop Insurance";
+            $msg = "Dear {$name}, your Insurance Claim ({$claimNumber}) status has been updated to {$status}.{$noteText} Thank you! - Sto. Nino Crop Insurance";
             break;
     }
 

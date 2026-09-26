@@ -107,6 +107,7 @@ require_once '../../includes/head.php';
         <h4>📋 Application Details</h4>
         <button class="modal-close" onclick="closeModal('view-modal')">×</button>
       </div>
+      <div class="modal-body" id="view-modal-body" style="padding:24px"></div>
       <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <button class="btn btn-outline" onclick="printMyApplicationModal()"><span class="btn-icon">🖨️</span> Print Application Slip</button>
         <div style="display:flex;gap:8px">
@@ -549,6 +550,21 @@ require_once '../../includes/head.php';
             ${p.agent_name  ? detailCell('Assigned Agent', p.agent_name) : ''}
             ${p.approved_at ? detailCell('Approved At', formatDate(p.approved_at)) : ''}
           </div>
+          ${(p.documents && p.documents.length)
+            ? `<div style="margin-top:16px">
+                 ${sectionTitle('📎', 'Uploaded Documents & Photo Evidence')}
+                 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
+                   ${p.documents.map(d => `
+                     <a href="/web-based-crop-insurance/uploads/${d.file_path}" target="_blank"
+                        style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:#f1f5f9;
+                               border:1px solid var(--border-color);border-radius:8px;font-size:12.5px;color:var(--primary);
+                               text-decoration:none;font-weight:600">
+                       ${d.document_type === 'valid_id' ? '🪪' : '📸'} ${d.file_name || 'Document'}
+                     </a>
+                   `).join('')}
+                 </div>
+               </div>`
+            : ''}
           ${p.remarks
             ? `<div style="margin-top:14px;padding:10px 14px;background:#fff3cd;
                 border:1px solid #ffc107;border-radius:8px;font-size:13px">
